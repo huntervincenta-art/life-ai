@@ -1,0 +1,486 @@
+/* ── Reset & base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3347;
+  --text: #e2e4ef;
+  --muted: #6b7280;
+  --accent: #6366f1;
+  --accent-hover: #4f52d6;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --green: #22c55e;
+  --grey: #6b7280;
+  --nav-h: 64px;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ── App shell ──────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: var(--nav-h);
+}
+
+/* ── Bottom nav ─────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: var(--nav-h);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  z-index: 100;
+}
+
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.nav-tab.active { color: var(--accent); }
+.nav-tab:hover:not(.active) { color: var(--text); }
+.nav-icon { width: 22px; height: 22px; }
+.nav-label { line-height: 1; }
+
+/* ── Page ───────────────────────────────────────────────── */
+.page { padding: 20px 16px 8px; }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.page-title { font-size: 22px; font-weight: 700; }
+
+/* ── Cards ──────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+
+.item-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.item-name { font-weight: 600; font-size: 15px; }
+
+.category-badge {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-top: 3px;
+}
+
+.item-card-bottom { display: flex; align-items: center; }
+
+.qty-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.qty-text { color: var(--muted); font-size: 14px; flex: 1; }
+.qty-input {
+  width: 64px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 4px 8px;
+  font-size: 14px;
+}
+.unit-label { color: var(--muted); font-size: 14px; flex: 1; }
+
+/* ── Pills ──────────────────────────────────────────────── */
+.pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.pill-red    { background: rgba(239,68,68,0.15);  color: var(--red); }
+.pill-amber  { background: rgba(245,158,11,0.15); color: var(--amber); }
+.pill-green  { background: rgba(34,197,94,0.15);  color: var(--green); }
+.pill-grey   { background: rgba(107,114,128,0.15);color: var(--grey); }
+
+/* ── Sections ───────────────────────────────────────────── */
+.section { margin-bottom: 20px; }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.section-header:hover { color: var(--text); }
+.count { font-weight: 400; }
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+button { cursor: pointer; font-family: inherit; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-lg { width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; }
+
+.btn-sm {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text);
+  transition: background 0.15s, color 0.15s;
+}
+.btn-sm:hover { background: var(--surface2); }
+
+.btn-ghost { color: var(--muted); border-color: var(--border); }
+.btn-ghost:hover { color: var(--text); }
+
+.btn-danger { color: var(--red); border-color: rgba(239,68,68,0.3); }
+.btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+/* ── Forms ──────────────────────────────────────────────── */
+.add-form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-row { display: flex; gap: 12px; }
+.flex-1 { flex: 1; }
+.field-label { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+.field-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.field-input:focus { outline: none; border-color: var(--accent); }
+.field-input option { background: var(--surface2); }
+
+.email-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 12px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 10px;
+}
+.email-textarea:focus { outline: none; border-color: var(--accent); }
+
+/* ── Recipes ────────────────────────────────────────────── */
+.analyze-cta {
+  text-align: center;
+  padding: 24px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recipe-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+
+.recipe-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.recipe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.recipe-name { font-weight: 700; font-size: 16px; }
+.recipe-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+.recipe-ingredients { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+.ingredient-tag {
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ingredient-tag.expiring { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+.recipe-steps {
+  margin-top: 12px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── Orders ─────────────────────────────────────────────── */
+.order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.order-row:last-child { border-bottom: none; }
+.order-num { font-weight: 600; font-size: 14px; }
+
+.preview-card { overflow-x: auto; }
+.preview-note { font-size: 12px; margin-bottom: 10px; }
+.preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.preview-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.preview-table td { padding: 6px 8px; }
+.preview-table tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+
+/* ── Walmart Orders ─────────────────────────────────────── */
+.walmart-summary-card { margin-bottom: 16px; }
+
+.walmart-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.walmart-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px 8px;
+  gap: 4px;
+}
+
+.walmart-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.walmart-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.walmart-last-fetched {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.walmart-order-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.walmart-order-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.walmart-order-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.walmart-order-num {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.walmart-order-date {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.walmart-order-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.walmart-order-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.walmart-expand-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 0 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.walmart-expand-btn:hover { color: var(--text); }
+
+.walmart-items-list {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.walmart-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.walmart-item-name {
+  color: var(--text);
+  flex: 1;
+  padding-right: 8px;
+}
+
+.walmart-item-price {
+  color: var(--muted);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.walmart-no-items {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.walmart-manual-section {
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+.walmart-toggle-paste {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  padding: 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.walmart-toggle-paste:hover { color: var(--text); border-color: var(--accent); }
+
+/* ── Utilities ──────────────────────────────────────────── */
+.muted { color: var(--muted); font-size: 14px; }
+.error-msg { color: var(--red); font-size: 14px; padding: 8px 0; }
+.center-msg { text-align: center; padding: 48px 16px; color: var(--muted); }
+.empty-state { text-align: center; padding: 60px 16px; }
+.empty-state p { color: var(--muted); margin-bottom: 6px; }
