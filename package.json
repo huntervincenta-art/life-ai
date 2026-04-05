@@ -4,7 +4,7 @@
   "description": "Personal life management app — pantry tracking, expiry alerts, recipe suggestions",
   "private": true,
   "scripts": {
-    "start": "node server/index.js",
+    "start": "npm install --prefix server && node server/index.js",
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "install:all": "npm install --prefix server && npm install --prefix client"
   },
