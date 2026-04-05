@@ -25,6 +25,13 @@ app.use('/api/pantry', pantryRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/walmart-orders', walmartOrdersRoutes);
 
+// Serve React client
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../client/build')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
+
 // Connect to MongoDB then start server
 mongoose
   .connect(process.env.MONGODB_URI)
