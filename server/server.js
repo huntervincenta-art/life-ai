@@ -36,11 +36,17 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve React client in production
+import fs from 'fs';
 const clientDistPath = path.join(__dirname, '../client/dist');
-app.use(express.static(clientDistPath));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // ─── CRON JOBS ───
 
