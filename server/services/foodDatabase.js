@@ -9,7 +9,7 @@ export const SHELF_LIFE_DB = {
       tomato: 7, tomatoes: 7, potato: 21, potatoes: 21, onion: 30, onions: 30,
       garlic: 30, ginger: 21, carrot: 21, carrots: 21, celery: 14,
       broccoli: 5, cauliflower: 7, spinach: 5, lettuce: 7, kale: 7,
-      cucumber: 7, bell pepper: 7, pepper: 7, peppers: 7, zucchini: 7,
+      cucumber: 7, 'bell pepper': 7, pepper: 7, peppers: 7, zucchini: 7,
       mushroom: 7, mushrooms: 7, corn: 5, 'green beans': 7, asparagus: 5,
       strawberry: 5, strawberries: 5, blueberry: 7, blueberries: 7,
       raspberry: 3, raspberries: 3, grape: 7, grapes: 7, watermelon: 7,
