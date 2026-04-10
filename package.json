@@ -7,7 +7,7 @@
     "start": "cd server && npm install && node server.js",
     "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
     "install:all": "npm install --prefix server && npm install --prefix client",
-    "build": "npm install --prefix client && npm run build --prefix client"
+    "build": "cd server && npm install && cd ../client && npm install && npx vite build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

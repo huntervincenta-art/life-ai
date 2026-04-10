@@ -5,7 +5,8 @@
       "Bash(rm -f server/index.js server/models/PantryItem.js server/models/WalmartOrder.js server/routes/email.js server/routes/walmartOrders.js server/jobs/expiryChecker.js)",
       "Bash(rm -f client/src/api.js client/src/utils.js client/src/App.css client/src/index.css)",
       "Bash(rm -f client/src/components/BottomNav.jsx client/src/pages/AddItemPage.jsx client/src/pages/OrdersPage.jsx)",
-      "Bash(rmdir server/jobs)"
+      "Bash(rmdir server/jobs)",
+      "Bash(git add:*)"
     ]
   }
 }
