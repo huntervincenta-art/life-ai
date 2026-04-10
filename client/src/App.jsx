@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import BottomNav from './components/BottomNav';
+import NavBar from './components/NavBar';
+import HomePage from './pages/HomePage';
 import PantryPage from './pages/PantryPage';
+import CheckInPage from './pages/CheckInPage';
+import RoutinesPage from './pages/RoutinesPage';
 import RecipesPage from './pages/RecipesPage';
-import OrdersPage from './pages/OrdersPage';
-import AddItemPage from './pages/AddItemPage';
-import './App.css';
 
 export default function App() {
   return (
@@ -12,13 +12,14 @@ export default function App() {
       <div className="app">
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<PantryPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/pantry" element={<PantryPage />} />
+            <Route path="/checkin" element={<CheckInPage />} />
+            <Route path="/routines" element={<RoutinesPage />} />
             <Route path="/recipes" element={<RecipesPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/add" element={<AddItemPage />} />
           </Routes>
         </main>
-        <BottomNav />
+        <NavBar />
       </div>
     </BrowserRouter>
   );

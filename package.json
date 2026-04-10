@@ -1,12 +1,13 @@
 {
   "name": "life-ai",
   "version": "1.0.0",
-  "description": "Personal life management app — pantry tracking, expiry alerts, recipe suggestions",
+  "description": "ADHD-optimized personal life management hub",
   "private": true,
   "scripts": {
-    "start": "npm install --prefix server && node server/index.js",
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
-    "install:all": "npm install --prefix server && npm install --prefix client"
+    "start": "cd server && npm install && node server.js",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "build": "cd client && npm run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
