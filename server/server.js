@@ -15,7 +15,7 @@ import { PantryItem, Onboarding, RoutineTask, Pattern } from './models/index.js'
 import { notifyExpiringItem, notifyChoreReminder, notifyDataCheckin } from './services/ntfyService.js';
 import { seedPatterns } from './routes/lifeLog.js';
 import { seedDefaultRoutines } from './routes/routines.js';
-import { syncWalmartOrders } from './services/gmailSync.js';
+import { syncWalmartOrders, getSyncLog } from './services/gmailSync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +36,11 @@ app.use('/api/orders', orderRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', project: 'Life AI', timestamp: new Date().toISOString() });
+});
+
+// Debug: sync log viewer
+app.get('/api/debug/sync-log', (req, res) => {
+  res.json(getSyncLog());
 });
 
 // Serve React client in production

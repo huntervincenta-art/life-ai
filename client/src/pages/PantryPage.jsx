@@ -41,7 +41,8 @@ export default function PantryPage() {
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ name: '', category: 'other', daysUntilExpiry: '', quantity: 1, isFood: true });
+  const defaultExpiry = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  const [addForm, setAddForm] = useState({ name: '', category: 'other', expiryDate: defaultExpiry, quantity: 1, isFood: true });
 
   const load = useCallback(async () => {
     try {
@@ -78,12 +79,18 @@ export default function PantryPage() {
   async function handleAdd(e) {
     e.preventDefault();
     if (!addForm.name.trim()) return;
+    const expiry = addForm.expiryDate ? new Date(addForm.expiryDate + 'T23:59:59') : null;
+    const daysUntil = expiry ? Math.ceil((expiry - new Date()) / 86400000) : undefined;
     await pantry.add({
-      ...addForm,
+      name: addForm.name,
+      category: addForm.category,
       quantity: Number(addForm.quantity),
-      daysUntilExpiry: addForm.daysUntilExpiry ? Number(addForm.daysUntilExpiry) : undefined
+      isFood: addForm.isFood,
+      estimatedExpiry: expiry,
+      daysUntilExpiry: daysUntil
     });
-    setAddForm({ name: '', category: 'other', daysUntilExpiry: '', quantity: 1, isFood: true });
+    const newDefault = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+    setAddForm({ name: '', category: 'other', expiryDate: newDefault, quantity: 1, isFood: true });
     setShowAdd(false);
     load();
   }
@@ -132,8 +139,8 @@ export default function PantryPage() {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Days until expiry</label>
-              <input className="form-input" type="number" min="0" value={addForm.daysUntilExpiry} onChange={e => setAddForm(f => ({ ...f, daysUntilExpiry: e.target.value }))} placeholder="Auto" />
+              <label className="form-label">Expiration Date</label>
+              <input className="form-input" type="date" value={addForm.expiryDate} onChange={e => setAddForm(f => ({ ...f, expiryDate: e.target.value }))} />
             </div>
           </div>
           <div className="form-row">

@@ -59,18 +59,27 @@ router.get('/stats', async (req, res) => {
 // POST /api/pantry — add item manually
 router.post('/', async (req, res) => {
   try {
-    const { name, category, quantity, unit, daysUntilExpiry, isFood: isFoodItem, tags } = req.body;
+    const { name, category, quantity, unit, daysUntilExpiry, estimatedExpiry: expiryInput, isFood: isFoodItem, tags } = req.body;
 
     const cat = category || classifyProduct(name);
-    const days = daysUntilExpiry || estimateShelfLife(name, cat);
-    const estimatedExpiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    // Accept either an explicit expiry date or days-until-expiry
+    let expiry;
+    let days;
+    if (expiryInput) {
+      expiry = new Date(expiryInput);
+      days = Math.ceil((expiry - new Date()) / (24 * 60 * 60 * 1000));
+    } else {
+      days = daysUntilExpiry || estimateShelfLife(name, cat);
+      expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    }
 
     const item = new PantryItem({
       name,
       category: cat,
       quantity: quantity || 1,
       unit: unit || 'item',
-      estimatedExpiry,
+      estimatedExpiry: expiry,
       daysUntilExpiry: days,
       isFood: isFoodItem !== undefined ? isFoodItem : isFood(name),
       tags

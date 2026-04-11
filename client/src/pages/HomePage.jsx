@@ -24,6 +24,7 @@ export default function HomePage() {
   const [todayRoutines, setTodayRoutines] = useState([]);
   const [syncState, setSyncState] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,15 +55,21 @@ export default function HomePage() {
 
   async function handleSync() {
     setSyncing(true);
+    setSyncResult(null);
     try {
-      await pantry.sync();
+      const result = await pantry.sync();
+      setSyncResult(result);
       const updated = await pantry.syncStatus();
       setSyncState(updated);
-      // Refresh stats too
-      const newStats = await pantry.stats();
+      // Refresh stats + expiring
+      const [newStats, newExpiring] = await Promise.all([
+        pantry.stats(),
+        pantry.expiringIngredients()
+      ]);
       setStats(newStats);
+      setExpiring(newExpiring.slice(0, 5));
     } catch (e) {
-      console.error('Sync failed:', e);
+      setSyncResult({ errors: [e.message] });
     } finally {
       setSyncing(false);
     }
@@ -247,7 +254,14 @@ export default function HomePage() {
                 <span style={{ fontWeight: 600 }}>{syncState?.totalItemsSynced || 0}</span>
               </div>
             </div>
-            {syncState?.lastError && (
+            {syncResult && !syncing && (
+              <p style={{ fontSize: 12, marginTop: 8, fontWeight: 500, color: syncResult.errors?.length > 0 && syncResult.newOrders === 0 ? 'var(--accent-danger)' : 'var(--accent-success)' }}>
+                {syncResult.errors?.length > 0 && syncResult.newOrders === undefined
+                  ? `Error: ${syncResult.errors[0]}`
+                  : `Found ${syncResult.newOrders || 0} new orders, added ${syncResult.newItems || 0} items`}
+              </p>
+            )}
+            {syncState?.lastError && !syncResult && (
               <p style={{ fontSize: 11, marginTop: 6, color: 'var(--accent-danger)' }}>
                 {syncState.lastError}
               </p>
