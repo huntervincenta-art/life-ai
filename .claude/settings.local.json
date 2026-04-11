@@ -8,7 +8,10 @@
       "Bash(rmdir server/jobs)",
       "Bash(git add:*)",
       "Bash(npx vite:*)",
-      "Bash(node --check server.js)"
+      "Bash(node --check server.js)",
+      "Bash(node --check services/gmailSync.js)",
+      "Bash(node --check routes/pantry.js)",
+      "Bash(node --check models/index.js)"
     ]
   }
 }

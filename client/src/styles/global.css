@@ -44,7 +44,7 @@ html, body, #root {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: var(--nav-h);
+  padding-bottom: 120px;
   -webkit-overflow-scrolling: touch;
 }
 

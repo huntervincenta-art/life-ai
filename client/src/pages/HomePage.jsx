@@ -4,13 +4,26 @@ import { pantry, life, routines, orders } from '../utils/api';
 import { daysUntil, getExpiryClass, getExpiryLabel, CATEGORY_EMOJI, formatDate } from '../utils/helpers';
 import CustodyCalendar from '../components/CustodyCalendar';
 
+function timeAgo(dateStr) {
+  if (!dateStr) return 'Never';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export default function HomePage() {
   const [tip, setTip] = useState('');
   const [onboarding, setOnboarding] = useState(null);
   const [stats, setStats] = useState(null);
   const [expiring, setExpiring] = useState([]);
   const [todayRoutines, setTodayRoutines] = useState([]);
-  const [orderCount, setOrderCount] = useState(0);
+  const [syncState, setSyncState] = useState(null);
+  const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,13 +33,13 @@ export default function HomePage() {
       pantry.stats(),
       pantry.expiringIngredients(),
       routines.list(),
-      orders.list()
-    ]).then(([tipRes, onbRes, statsRes, expRes, routRes, ordRes]) => {
+      pantry.syncStatus()
+    ]).then(([tipRes, onbRes, statsRes, expRes, routRes, syncRes]) => {
       if (tipRes.status === 'fulfilled') setTip(tipRes.value.tip);
       if (onbRes.status === 'fulfilled') setOnboarding(onbRes.value);
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
       if (expRes.status === 'fulfilled') setExpiring(expRes.value.slice(0, 5));
-      if (ordRes.status === 'fulfilled') setOrderCount(ordRes.value.length);
+      if (syncRes.status === 'fulfilled') setSyncState(syncRes.value);
 
       if (routRes.status === 'fulfilled') {
         const today = new Date().getDay();
@@ -38,6 +51,22 @@ export default function HomePage() {
       setLoading(false);
     });
   }, []);
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await pantry.sync();
+      const updated = await pantry.syncStatus();
+      setSyncState(updated);
+      // Refresh stats too
+      const newStats = await pantry.stats();
+      setStats(newStats);
+    } catch (e) {
+      console.error('Sync failed:', e);
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   if (loading) return <div className="center-msg">Loading...</div>;
 
@@ -196,23 +225,33 @@ export default function HomePage() {
           <div className="card">
             <div className="flex-between mb-8">
               <p style={{ fontWeight: 600, fontSize: 14 }}>Walmart Sync</p>
-              <button className="btn btn-sm btn-ghost" disabled title="Gmail integration coming soon">
-                Sync Now
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={handleSync}
+                disabled={syncing || syncState?.isRunning}
+              >
+                {syncing || syncState?.isRunning ? 'Syncing...' : 'Sync Now'}
               </button>
             </div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+            <div style={{ display: 'flex', gap: 16, fontSize: 13, flexWrap: 'wrap' }}>
+              <div>
+                <span className="muted">Last sync: </span>
+                <span style={{ fontWeight: 500 }}>{timeAgo(syncState?.lastSyncAt)}</span>
+              </div>
               <div>
                 <span className="muted">Orders: </span>
-                <span style={{ fontWeight: 600 }}>{orderCount}</span>
+                <span style={{ fontWeight: 600 }}>{syncState?.totalOrdersSynced || 0}</span>
               </div>
               <div>
-                <span className="muted">Status: </span>
-                <span style={{ color: 'var(--accent-warning)', fontWeight: 500 }}>Manual</span>
+                <span className="muted">Items: </span>
+                <span style={{ fontWeight: 600 }}>{syncState?.totalItemsSynced || 0}</span>
               </div>
             </div>
-            <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
-              Gmail OAuth sync coming soon
-            </p>
+            {syncState?.lastError && (
+              <p style={{ fontSize: 11, marginTop: 6, color: 'var(--accent-danger)' }}>
+                {syncState.lastError}
+              </p>
+            )}
           </div>
         </div>
       </div>

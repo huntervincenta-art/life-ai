@@ -26,6 +26,8 @@ export const pantry = {
   syncGmail: (emails) => request('/pantry/sync-gmail', { method: 'POST', body: JSON.stringify({ emails }) }),
   expiringIngredients: () => request('/pantry/expiring-ingredients'),
   availableFood: () => request('/pantry/available-food'),
+  sync: () => request('/pantry/sync', { method: 'POST' }),
+  syncStatus: () => request('/pantry/sync-status'),
 };
 
 // ─── Life / Onboarding ───

@@ -15,6 +15,7 @@ import { PantryItem, Onboarding, RoutineTask, Pattern } from './models/index.js'
 import { notifyExpiringItem, notifyChoreReminder, notifyDataCheckin } from './services/ntfyService.js';
 import { seedPatterns } from './routes/lifeLog.js';
 import { seedDefaultRoutines } from './routes/routines.js';
+import { syncWalmartOrders } from './services/gmailSync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -123,6 +124,19 @@ cron.schedule('0,30 * * * *', async () => {
   }
 });
 
+// 4. Every 30 min — Gmail Walmart sync
+cron.schedule('*/30 * * * *', async () => {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return;
+  try {
+    const result = await syncWalmartOrders();
+    if (result.newOrders > 0) {
+      console.log(`[Cron] Gmail sync: ${result.newOrders} new orders, ${result.newItems} items added`);
+    }
+  } catch (err) {
+    console.error('[Cron] Gmail sync failed:', err.message);
+  }
+});
+
 // ─── START SERVER ───
 
 async function start() {
@@ -146,6 +160,16 @@ async function start() {
         }
       } catch (seedErr) {
         console.error('[Seed] Error:', seedErr.message);
+      }
+
+      // Initial Gmail sync on startup
+      if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        syncWalmartOrders()
+          .then(r => {
+            if (r.newOrders > 0) console.log(`[Startup] Gmail sync: ${r.newOrders} orders, ${r.newItems} items`);
+            else console.log('[Startup] Gmail sync: no new orders');
+          })
+          .catch(err => console.error('[Startup] Gmail sync failed:', err.message));
       }
     } catch (err) {
       console.error('MongoDB connection error:', err.message);

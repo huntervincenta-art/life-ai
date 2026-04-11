@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PantryItem, Order } from '../models/index.js';
 import { parseProduct, estimateShelfLife, classifyProduct, isFood } from '../services/foodDatabase.js';
+import { syncWalmartOrders, getSyncStatus } from '../services/gmailSync.js';
 
 const router = Router();
 
@@ -210,6 +211,26 @@ router.get('/available-food', async (req, res) => {
       isFood: true
     }).sort({ estimatedExpiry: 1 });
     res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/pantry/sync — trigger Gmail Walmart sync
+router.post('/sync', async (req, res) => {
+  try {
+    const result = await syncWalmartOrders();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/pantry/sync-status — get sync state
+router.get('/sync-status', async (req, res) => {
+  try {
+    const state = await getSyncStatus();
+    res.json(state);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

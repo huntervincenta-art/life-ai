@@ -184,3 +184,15 @@ const onboardingSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export const Onboarding = mongoose.model('Onboarding', onboardingSchema);
+
+// ─── SYNC STATE (Gmail/Walmart sync tracking) ───
+const syncStateSchema = new mongoose.Schema({
+  lastSyncAt: { type: Date },
+  lastMessageDate: { type: Date },
+  totalOrdersSynced: { type: Number, default: 0 },
+  totalItemsSynced: { type: Number, default: 0 },
+  lastError: { type: String },
+  isRunning: { type: Boolean, default: false }
+}, { timestamps: true });
+
+export const SyncState = mongoose.model('SyncState', syncStateSchema);
