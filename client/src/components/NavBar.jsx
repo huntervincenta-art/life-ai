@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { pantry } from '../utils/api';
 
@@ -23,7 +23,7 @@ export default function NavBar() {
     <>
       {/* Desktop Sidebar — hidden on mobile via CSS */}
       <aside className="sidebar">
-        <div className="sidebar-logo">Life AI 🧠</div>
+        <Link to="/" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>Life AI 🧠</Link>
         <nav className="sidebar-nav">
           {tabs.map(tab => (
             <NavLink

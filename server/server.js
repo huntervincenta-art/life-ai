@@ -38,6 +38,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', project: 'Life AI', timestamp: new Date().toISOString() });
 });
 
+// Test ntfy notification
+app.get('/api/test-ntfy', async (req, res) => {
+  try {
+    const { sendNotification } = await import('./services/ntfyService.js');
+    const success = await sendNotification({
+      title: 'Life AI Test',
+      message: 'If you see this, ntfy is working!',
+      priority: 3,
+      tags: ['white_check_mark']
+    });
+    res.json({ success, topic: process.env.NTFY_TOPIC || 'life-ai-hunter', server: process.env.NTFY_SERVER || 'https://ntfy.sh' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Debug: sync log viewer
 app.get('/api/debug/sync-log', (req, res) => {
   res.json(getSyncLog());
