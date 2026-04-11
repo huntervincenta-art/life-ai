@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { RoutineTask } from '../models/index.js';
 import { getChoreStrategy, getKidActivities, DAILY_TIPS } from '../services/adhdStrategies.js';
 import { notifyChoreReminder } from '../services/ntfyService.js';
+import { getKidSuggestions, shuffleActivities, KIDS } from '../services/kidsConfig.js';
 
 const router = Router();
 
@@ -100,7 +101,7 @@ router.get('/strategy/:choreType', (req, res) => {
   res.json(strategy);
 });
 
-// GET /api/routines/kid-activities — get activity suggestions
+// GET /api/routines/kid-activities — get activity suggestions (generic)
 router.get('/kid-activities', (req, res) => {
   const { energy, weather, count } = req.query;
   const activities = getKidActivities({
@@ -109,6 +110,16 @@ router.get('/kid-activities', (req, res) => {
     count: parseInt(count) || 3
   });
   res.json(activities);
+});
+
+// GET /api/routines/kid-suggestions — personalized Rose + Will suggestions
+router.get('/kid-suggestions', (req, res) => {
+  const { who, count } = req.query;
+  if (who) {
+    res.json({ activities: shuffleActivities(who, parseInt(count) || 3), kid: KIDS[who] });
+  } else {
+    res.json(getKidSuggestions());
+  }
 });
 
 // GET /api/routines/daily-tip — random daily ADHD tip

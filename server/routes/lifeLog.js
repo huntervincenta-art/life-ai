@@ -264,19 +264,29 @@ function getCustodyForDate(date) {
   const dayOfWeek = date.getDay();
   const weekInfo = getCustodyWeek(date);
 
-  // Monday & Wednesday afternoons are ALWAYS mine
+  // Monday & Wednesday afternoons are ALWAYS mine (3:30-7pm)
   const isWeekdayAfternoon = (dayOfWeek === 1 || dayOfWeek === 3);
 
-  // Weekend days (Fri evening, Sat, Sun) depend on cycle
-  const isWeekendDay = (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0);
-  const hasKidsWeekend = isWeekendDay && weekInfo.isMyWeekend;
+  // Weekend custody: Fri 3:30pm → Mon 8am (includes Fri, Sat, Sun, Mon morning)
+  const isWeekendCustodyDay = (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0);
+  const isMondayMorning = dayOfWeek === 1; // Kids are still here Mon morning until 8am
+  const hasKidsWeekend = (isWeekendCustodyDay || isMondayMorning) && weekInfo.isMyWeekend;
+
+  let custodyHours = null;
+  if (hasKidsWeekend) {
+    if (dayOfWeek === 5) custodyHours = 'From 3:30pm';
+    else if (dayOfWeek === 1) custodyHours = 'Until 8am';
+    else custodyHours = 'All day';
+  } else if (isWeekdayAfternoon) {
+    custodyHours = '3:30pm-7pm';
+  }
 
   return {
     hasKids: hasKidsWeekend || isWeekdayAfternoon,
     isWeekdayAfternoon,
     isWeekendCustody: hasKidsWeekend,
-    isMomsWeekend: isWeekendDay && weekInfo.isMomsWeekend,
-    custodyHours: isWeekdayAfternoon ? '3:30pm-7pm' : hasKidsWeekend ? (dayOfWeek === 5 ? '5pm+' : 'All day') : null
+    isMomsWeekend: isWeekendCustodyDay && weekInfo.isMomsWeekend,
+    custodyHours
   };
 }
 
@@ -288,16 +298,19 @@ export async function seedPatterns() {
       name: 'Kids custody - weekends',
       type: 'custody',
       schedule: {
-        daysOfWeek: [5, 6, 0],
-        startHour: 17,
-        endHour: 18,
+        daysOfWeek: [5, 6, 0, 1], // Fri 3:30pm → Mon 8am
+        startHour: 15, // Fri 3:30pm pickup
+        endHour: 8, // Mon 8am dropoff
         frequency: 'custom'
       },
       metadata: {
         cycle: '3 weekends on, 1 weekend off, 4-week rotation',
         cycleAnchorDate: '2026-03-28',
         cycleWeekNumber: 4,
-        weekdayVisits: 'Monday and Wednesday 3:30pm-7pm every week regardless of weekend'
+        pickup: 'Friday 3:30pm',
+        dropoff: 'Monday 8:00am (mom drives to school)',
+        weekdayVisits: 'Monday and Wednesday 3:30pm-7pm every week regardless of weekend',
+        kids: 'Rose (7) and Will (5)'
       },
       confidenceScore: 1.0,
       source: 'user_input',

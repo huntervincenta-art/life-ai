@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { life } from '../utils/api';
 import { energyEmoji, moodEmoji } from '../utils/helpers';
+import BionicText from '../components/BionicText';
 
 const TOP_ACTIVITIES = ['Working', 'Cooking', 'Eating', 'Cleaning', 'Relaxing', 'Watching TV', 'Scrolling phone', 'Sleeping'];
 const MORE_ACTIVITIES = ['Laundry', 'Dishes', 'Gaming', 'Reading', 'Exercising', 'Walking', 'Shopping', 'Driving', 'Showering', 'Creating content', 'Editing'];
@@ -85,7 +86,7 @@ export default function CheckInPage() {
         <div className="focus-card">
           <div className="focus-card-emoji">📊</div>
           <div className="focus-card-title">Learn Your Patterns</div>
-          <div className="focus-card-desc">Check in throughout the day for 7 days. Life AI will learn your routines and energy cycles.</div>
+          <BionicText as="div" className="focus-card-desc">Check in throughout the day for 7 days. Life AI will learn your routines and energy cycles.</BionicText>
           <button className="btn btn-primary btn-lg" onClick={handleStart}>Start Data Gathering</button>
         </div>
       </div>

@@ -65,6 +65,7 @@ export const routines = {
     return request(`/routines/kid-activities${q ? `?${q}` : ''}`);
   },
   getDailyTip: () => request('/routines/daily-tip'),
+  getKidSuggestions: () => request('/routines/kid-suggestions'),
   notify: (id) => request(`/routines/${id}/notify`, { method: 'POST' }),
   seedDefaults: () => request('/routines/seed-defaults', { method: 'POST' }),
 };

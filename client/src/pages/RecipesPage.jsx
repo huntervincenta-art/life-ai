@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { pantry } from '../utils/api';
 import { daysUntil, getExpiryClass, getExpiryLabel } from '../utils/helpers';
+import BionicText from '../components/BionicText';
 
 const RECIPE_TEMPLATES = [
   {
@@ -115,7 +116,7 @@ export default function RecipesPage() {
 
           {expandedRecipe === i && (
             <div style={{ marginTop: 14 }}>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>{r.description}</p>
+              <BionicText as="p" style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>{r.description}</BionicText>
 
               <div className="recipe-desktop-layout">
                 <div>
