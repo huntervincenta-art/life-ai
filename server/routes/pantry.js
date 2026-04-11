@@ -245,4 +245,42 @@ router.get('/sync-status', async (req, res) => {
   }
 });
 
+// POST /api/pantry/manual-import — bulk import items (IMAP fallback)
+router.post('/manual-import', async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'items array is required. Each item: { name, category?, quantity?, expiryDays? }' });
+    }
+
+    const created = [];
+    for (const item of items) {
+      if (!item.name) continue;
+
+      const cat = item.category || classifyProduct(item.name);
+      const foodCheck = item.isFood !== undefined ? item.isFood : isFood(item.name);
+      const days = item.expiryDays || (foodCheck ? estimateShelfLife(item.name, cat) : null);
+      const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+
+      const pantryItem = new PantryItem({
+        name: item.name,
+        category: cat,
+        quantity: item.quantity || 1,
+        unit: item.unit || 'item',
+        purchaseDate: item.purchaseDate || new Date(),
+        estimatedExpiry: expiry,
+        daysUntilExpiry: days,
+        isFood: foodCheck,
+        rawProductName: item.rawName || item.name
+      });
+      await pantryItem.save();
+      created.push(pantryItem);
+    }
+
+    res.status(201).json({ created: created.length, items: created });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

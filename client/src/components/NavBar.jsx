@@ -40,7 +40,6 @@ export default function NavBar() {
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-footer">Life AI v1.0</div>
       </aside>
 
       {/* Mobile Bottom Nav — hidden on desktop via CSS */}

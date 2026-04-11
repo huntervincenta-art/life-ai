@@ -6,41 +6,16 @@ const CATEGORIES = ['all', 'produce', 'dairy', 'meat', 'frozen', 'pantry', 'beve
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'expiring', label: 'Expiring' },
-  { key: 'food', label: 'Food Only' }
+  { key: 'food', label: 'Food only' }
 ];
-
-function ItemCard({ item, onConsume, onDelete }) {
-  const days = daysUntil(item.estimatedExpiry);
-
-  return (
-    <div className="card slide-up" style={{ padding: '12px 16px' }}>
-      <div className="flex-between mb-8">
-        <div>
-          <span style={{ marginRight: 6 }}>{CATEGORY_EMOJI[item.category] || '📦'}</span>
-          <span style={{ fontWeight: 600 }}>{item.name}</span>
-          <span className="muted" style={{ fontSize: 12, marginLeft: 8 }}>
-            x{item.quantity} {item.unit}
-          </span>
-        </div>
-        <span className={`expiry-badge ${getExpiryClass(days)}`}>
-          {getExpiryLabel(days)}
-        </span>
-      </div>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button className="btn btn-sm btn-ghost" onClick={() => onConsume(item._id)}>Used</button>
-        <button className="btn btn-sm btn-danger" onClick={() => onDelete(item._id)}>Remove</button>
-      </div>
-    </div>
-  );
-}
 
 export default function PantryPage() {
   const [items, setItems] = useState([]);
-  const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all');
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+
   const defaultExpiry = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
   const [addForm, setAddForm] = useState({ name: '', category: 'other', expiryDate: defaultExpiry, quantity: 1, isFood: true });
 
@@ -50,13 +25,8 @@ export default function PantryPage() {
       if (filter === 'expiring') params.filter = 'expiring';
       if (filter === 'food') params.filter = 'food';
       if (category !== 'all') params.category = category;
-
-      const [itemsData, statsData] = await Promise.all([
-        pantry.list(params),
-        pantry.stats()
-      ]);
-      setItems(itemsData);
-      setStats(statsData);
+      const data = await pantry.list(params);
+      setItems(data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -80,20 +50,29 @@ export default function PantryPage() {
     e.preventDefault();
     if (!addForm.name.trim()) return;
     const expiry = addForm.expiryDate ? new Date(addForm.expiryDate + 'T23:59:59') : null;
-    const daysUntil = expiry ? Math.ceil((expiry - new Date()) / 86400000) : undefined;
+    const daysLeft = expiry ? Math.ceil((expiry - new Date()) / 86400000) : undefined;
     await pantry.add({
       name: addForm.name,
       category: addForm.category,
       quantity: Number(addForm.quantity),
       isFood: addForm.isFood,
       estimatedExpiry: expiry,
-      daysUntilExpiry: daysUntil
+      daysUntilExpiry: daysLeft
     });
     const newDefault = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
     setAddForm({ name: '', category: 'other', expiryDate: newDefault, quantity: 1, isFood: true });
     setShowAdd(false);
     load();
   }
+
+  // Group items by category
+  const grouped = {};
+  for (const item of items) {
+    const cat = item.category || 'other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  }
+  const sortedCategories = Object.keys(grouped).sort();
 
   if (loading) return <div className="center-msg">Loading pantry...</div>;
 
@@ -105,24 +84,6 @@ export default function PantryPage() {
           {showAdd ? 'Cancel' : '+ Add'}
         </button>
       </div>
-
-      {/* Stats */}
-      {stats && (
-        <div className="stat-grid">
-          <div className="stat-card">
-            <div className="stat-value">{stats.total}</div>
-            <div className="stat-label">Total</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: 'var(--accent-warning)' }}>{stats.expiringSoon}</div>
-            <div className="stat-label">Expiring 3d</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: 'var(--accent-danger)' }}>{stats.expired}</div>
-            <div className="stat-label">Expired</div>
-          </div>
-        </div>
-      )}
 
       {/* Add Form */}
       {showAdd && (
@@ -157,7 +118,7 @@ export default function PantryPage() {
         </form>
       )}
 
-      {/* Filter Chips */}
+      {/* Filters */}
       <div className="chip-group">
         {FILTERS.map(f => (
           <button key={f.key} className={`chip${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>
@@ -166,7 +127,7 @@ export default function PantryPage() {
         ))}
       </div>
 
-      {/* Category Chips */}
+      {/* Category filter */}
       <div className="chip-group">
         {CATEGORIES.map(c => (
           <button key={c} className={`chip${category === c ? ' active' : ''}`} onClick={() => setCategory(c)}>
@@ -175,7 +136,7 @@ export default function PantryPage() {
         ))}
       </div>
 
-      {/* Items */}
+      {/* Items grouped by category */}
       {items.length === 0 ? (
         <div className="empty-state">
           <div className="emoji">🧊</div>
@@ -183,8 +144,32 @@ export default function PantryPage() {
           <p className="muted">Add items or change your filters</p>
         </div>
       ) : (
-        items.map(item => (
-          <ItemCard key={item._id} item={item} onConsume={handleConsume} onDelete={handleDelete} />
+        sortedCategories.map(cat => (
+          <div key={cat} className="category-group">
+            <div className="category-group-header">
+              {CATEGORY_EMOJI[cat] || '📦'} {cat}
+            </div>
+            <div className="category-group-items">
+              {grouped[cat].map(item => {
+                const days = daysUntil(item.estimatedExpiry);
+                return (
+                  <div key={item._id} className="pantry-item">
+                    <div className="pantry-item-info">
+                      <div className="pantry-item-name">{item.name}</div>
+                      <div className="pantry-item-meta">x{item.quantity} {item.unit}</div>
+                    </div>
+                    <span className={`expiry-badge ${getExpiryClass(days)}`}>
+                      {getExpiryLabel(days)}
+                    </span>
+                    <div className="pantry-item-actions">
+                      <button className="btn-sm btn-ghost" onClick={() => handleConsume(item._id)}>Used</button>
+                      <button className="btn-sm btn-danger" onClick={() => handleDelete(item._id)}>x</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         ))
       )}
     </div>

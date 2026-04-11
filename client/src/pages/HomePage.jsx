@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { pantry, life, routines, orders } from '../utils/api';
-import { daysUntil, getExpiryClass, getExpiryLabel, CATEGORY_EMOJI, formatDate } from '../utils/helpers';
-import CustodyCalendar from '../components/CustodyCalendar';
+import { pantry, life, routines } from '../utils/api';
+import { daysUntil, getExpiryLabel, DAY_NAMES_FULL } from '../utils/helpers';
 
 function timeAgo(dateStr) {
   if (!dateStr) return 'Never';
@@ -12,8 +11,38 @@ function timeAgo(dateStr) {
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// Custody cycle check
+function getCustodyContext() {
+  const now = new Date();
+  const day = now.getDay();
+  const anchor = new Date('2026-03-28T00:00:00');
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const sat = new Date(now);
+  sat.setDate(now.getDate() + (6 - day));
+  sat.setHours(0, 0, 0, 0);
+  anchor.setHours(0, 0, 0, 0);
+  const weeksDiff = Math.round((sat - anchor) / msPerWeek);
+  const cycleWeek = ((weeksDiff % 4) + 4) % 4;
+  const actualWeek = ((cycleWeek + 3) % 4) + 1;
+  const isMyWeekend = actualWeek !== 4;
+  const isWeekday = day >= 1 && day <= 5;
+  const isMonWed = day === 1 || day === 3;
+
+  if (day === 5 || day === 6 || day === 0) {
+    return isMyWeekend ? 'Kids are with you this weekend' : "Mom's weekend";
+  }
+  if (isMonWed) return 'Kids this afternoon (3:30-7pm)';
+  return null;
 }
 
 export default function HomePage() {
@@ -39,15 +68,14 @@ export default function HomePage() {
       if (tipRes.status === 'fulfilled') setTip(tipRes.value.tip);
       if (onbRes.status === 'fulfilled') setOnboarding(onbRes.value);
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
-      if (expRes.status === 'fulfilled') setExpiring(expRes.value.slice(0, 5));
+      if (expRes.status === 'fulfilled') setExpiring(expRes.value);
       if (syncRes.status === 'fulfilled') setSyncState(syncRes.value);
 
       if (routRes.status === 'fulfilled') {
         const today = new Date().getDay();
-        const todayTasks = routRes.value.filter(r =>
+        setTodayRoutines(routRes.value.filter(r =>
           r.isActive && r.preferredTime?.daysOfWeek?.includes(today)
-        );
-        setTodayRoutines(todayTasks);
+        ));
       }
       setLoading(false);
     });
@@ -59,15 +87,9 @@ export default function HomePage() {
     try {
       const result = await pantry.sync();
       setSyncResult(result);
-      const updated = await pantry.syncStatus();
+      const [updated, newStats] = await Promise.all([pantry.syncStatus(), pantry.stats()]);
       setSyncState(updated);
-      // Refresh stats + expiring
-      const [newStats, newExpiring] = await Promise.all([
-        pantry.stats(),
-        pantry.expiringIngredients()
-      ]);
       setStats(newStats);
-      setExpiring(newExpiring.slice(0, 5));
     } catch (e) {
       setSyncResult({ errors: [e.message] });
     } finally {
@@ -77,198 +99,98 @@ export default function HomePage() {
 
   if (loading) return <div className="center-msg">Loading...</div>;
 
-  const showOnboarding = onboarding && onboarding.phase !== 'active';
+  // Decide focus card content
+  const custodyContext = getCustodyContext();
+  const now = new Date();
+  const doneToday = todayRoutines.filter(t => t.lastCompleted && new Date(t.lastCompleted).toDateString() === now.toDateString()).length;
+  const nextChore = todayRoutines.find(t => !t.lastCompleted || new Date(t.lastCompleted).toDateString() !== now.toDateString());
+  const urgentItem = expiring.length > 0 ? expiring[0] : null;
+  const urgentDays = urgentItem ? daysUntil(urgentItem.estimatedExpiry) : null;
+  const isDataGathering = onboarding?.phase === 'data_gathering';
+
+  let focusEmoji = '🧘';
+  let focusTitle = '';
+  let focusDesc = '';
+  let focusAction = null;
+
+  if (isDataGathering) {
+    focusEmoji = '📊';
+    focusTitle = 'Time to check in';
+    focusDesc = `${onboarding.totalCheckins}/${onboarding.targetCheckins} check-ins logged`;
+    focusAction = <Link to="/checkin" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>Check In Now</Link>;
+  } else if (urgentDays !== null && urgentDays <= 1) {
+    focusEmoji = '🍳';
+    focusTitle = `Use up: ${urgentItem.name}`;
+    focusDesc = urgentDays <= 0 ? 'Expired — cook or toss it today' : 'Expires tomorrow';
+    focusAction = <Link to="/recipes" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>Find a Recipe</Link>;
+  } else if (nextChore) {
+    focusEmoji = '✅';
+    focusTitle = nextChore.name;
+    focusDesc = nextChore.adhdStrategy || `${nextChore.estimatedMinutes || '?'} min`;
+    focusAction = <Link to="/routines" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>Start</Link>;
+  } else if (tip) {
+    focusEmoji = '💡';
+    focusTitle = 'Daily reminder';
+    focusDesc = tip;
+  }
+
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <div className="page fade-in">
-      <div className="page-header">
-        <h1 className="page-title">Life AI</h1>
+      {/* Greeting */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 className="page-title">{getGreeting()}, Hunter.</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>
+          {dateStr}
+          {custodyContext && <span style={{ color: 'var(--accent-secondary)' }}> — {custodyContext}</span>}
+        </p>
       </div>
 
-      {/* Onboarding Banner — full width */}
-      {showOnboarding && (
-        <div className="card mb-16" style={{ borderColor: 'var(--accent-secondary)' }}>
-          {onboarding.phase === 'not_started' ? (
-            <>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>Welcome to Life AI!</p>
-              <p className="muted mb-12">Start a 7-day data gathering phase. Check in hourly so we can learn your patterns.</p>
-              <Link to="/checkin" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>
-                Start Data Gathering
-              </Link>
-            </>
-          ) : onboarding.phase === 'data_gathering' ? (
-            <>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>Data Gathering In Progress</p>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${(onboarding.totalCheckins / onboarding.targetCheckins) * 100}%` }} />
-              </div>
-              <p className="muted" style={{ fontSize: 12 }}>
-                {onboarding.totalCheckins} / {onboarding.targetCheckins} check-ins - Ends {formatDate(onboarding.endsAt)}
-              </p>
-            </>
-          ) : onboarding.phase === 'pattern_review' ? (
-            <>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>Ready to Review Patterns!</p>
-              <p className="muted mb-12">Your data gathering is complete. Let's analyze your patterns.</p>
-              <Link to="/checkin" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-                Review Patterns
-              </Link>
-            </>
-          ) : null}
-        </div>
-      )}
-
-      {/* Stats Grid — 4 columns on desktop, 2 on mobile */}
-      {stats && (
-        <div className="stat-grid">
-          <div className="stat-card">
-            <div className="stat-value">{stats.total}</div>
-            <div className="stat-label">Items</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: stats.expiringSoon > 0 ? 'var(--accent-warning)' : undefined }}>
-              {stats.expiringSoon}
-            </div>
-            <div className="stat-label">Expiring</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: stats.expired > 0 ? 'var(--accent-danger)' : undefined }}>
-              {stats.expired}
-            </div>
-            <div className="stat-label">Expired</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.food || 0}</div>
-            <div className="stat-label">Food</div>
-          </div>
-        </div>
-      )}
-
-      {/* Two-column dashboard grid (desktop), stacked (mobile) */}
-      <div className="dashboard-grid">
-        {/* Left column */}
-        <div>
-          {/* Custody Calendar */}
-          <CustodyCalendar />
-
-          {/* Expiring Items */}
-          {expiring.length > 0 && (
-            <div className="section">
-              <p className="section-title">Use These Up</p>
-              {expiring.map(item => {
-                const days = daysUntil(item.estimatedExpiry);
-                return (
-                  <div key={item._id} className="card slide-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
-                    <div>
-                      <span style={{ marginRight: 6 }}>{CATEGORY_EMOJI[item.category] || '📦'}</span>
-                      <span style={{ fontWeight: 500 }}>{item.name}</span>
-                    </div>
-                    <span className={`expiry-badge ${getExpiryClass(days)}`}>
-                      {getExpiryLabel(days)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Today's Routines */}
-          {todayRoutines.length > 0 && (
-            <div className="section">
-              <p className="section-title">Today's Routines</p>
-              {todayRoutines.map(task => {
-                const isDone = task.lastCompleted && new Date(task.lastCompleted).toDateString() === new Date().toDateString();
-                return (
-                  <div key={task._id} className="card slide-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', opacity: isDone ? 0.5 : 1 }}>
-                    <span style={{ fontWeight: 500 }}>
-                      {isDone ? '✓ ' : ''}{task.name}
-                    </span>
-                    {task.streak > 0 && (
-                      <span className="streak-display">🔥 {task.streak}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Right column */}
-        <div>
-          {/* Quick Actions */}
-          <div className="section">
-            <p className="section-title">Quick Actions</p>
-            <div className="quick-actions">
-              <Link to="/pantry" className="quick-action">
-                <div className="quick-action-icon">🧊</div>
-                <div className="quick-action-label">Pantry</div>
-              </Link>
-              <Link to="/checkin" className="quick-action">
-                <div className="quick-action-icon">📊</div>
-                <div className="quick-action-label">Check In</div>
-              </Link>
-              <Link to="/routines" className="quick-action">
-                <div className="quick-action-icon">✅</div>
-                <div className="quick-action-label">Routines</div>
-              </Link>
-              <Link to="/recipes" className="quick-action">
-                <div className="quick-action-icon">🍳</div>
-                <div className="quick-action-label">Recipes</div>
-              </Link>
-            </div>
-          </div>
-
-          {/* Daily ADHD Tip */}
-          {tip && (
-            <div className="card card-accent mb-16">
-              <p className="muted mb-8" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Daily tip
-              </p>
-              <p style={{ fontWeight: 500 }}>{tip}</p>
-            </div>
-          )}
-
-          {/* Walmart Sync Status */}
-          <div className="card">
-            <div className="flex-between mb-8">
-              <p style={{ fontWeight: 600, fontSize: 14 }}>Walmart Sync</p>
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={handleSync}
-                disabled={syncing || syncState?.isRunning}
-              >
-                {syncing || syncState?.isRunning ? 'Syncing...' : 'Sync Now'}
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 13, flexWrap: 'wrap' }}>
-              <div>
-                <span className="muted">Last sync: </span>
-                <span style={{ fontWeight: 500 }}>{timeAgo(syncState?.lastSyncAt)}</span>
-              </div>
-              <div>
-                <span className="muted">Orders: </span>
-                <span style={{ fontWeight: 600 }}>{syncState?.totalOrdersSynced || 0}</span>
-              </div>
-              <div>
-                <span className="muted">Items: </span>
-                <span style={{ fontWeight: 600 }}>{syncState?.totalItemsSynced || 0}</span>
-              </div>
-            </div>
-            {syncResult && !syncing && (
-              <p style={{ fontSize: 12, marginTop: 8, fontWeight: 500, color: syncResult.errors?.length > 0 && syncResult.newOrders === 0 ? 'var(--accent-danger)' : 'var(--accent-success)' }}>
-                {syncResult.errors?.length > 0 && syncResult.newOrders === undefined
-                  ? `Error: ${syncResult.errors[0]}`
-                  : `Found ${syncResult.newOrders || 0} new orders, added ${syncResult.newItems || 0} items`}
-              </p>
-            )}
-            {syncState?.lastError && !syncResult && (
-              <p style={{ fontSize: 11, marginTop: 6, color: 'var(--accent-danger)' }}>
-                {syncState.lastError}
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Focus Card */}
+      <div className="focus-card">
+        <div className="focus-card-emoji">{focusEmoji}</div>
+        <div className="focus-card-title">{focusTitle}</div>
+        <div className="focus-card-desc">{focusDesc}</div>
+        {focusAction}
       </div>
+
+      {/* Stat pills */}
+      <div className="stat-pills">
+        <Link to="/pantry" className="stat-pill">
+          <span className="stat-pill-num">{stats?.expiringSoon || 0}</span>
+          <span>expiring soon</span>
+        </Link>
+
+        <Link to="/routines" className="stat-pill">
+          <span className="stat-pill-num">{doneToday}/{todayRoutines.length}</span>
+          <span>tasks done</span>
+        </Link>
+
+        <button className="stat-pill" onClick={handleSync} disabled={syncing}>
+          {syncing ? (
+            <span>Syncing...</span>
+          ) : (
+            <>
+              <span>Sync'd {timeAgo(syncState?.lastSyncAt)}</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Sync result toast */}
+      {syncResult && !syncing && (
+        <p style={{
+          fontSize: 12,
+          marginTop: 10,
+          textAlign: 'center',
+          color: syncResult.errors?.length > 0 && !syncResult.newOrders ? 'var(--accent-danger)' : 'var(--accent-success)'
+        }}>
+          {syncResult.newOrders !== undefined
+            ? `${syncResult.newOrders} new orders, ${syncResult.newItems} items added`
+            : `Error: ${syncResult.errors?.[0]}`}
+        </p>
+      )}
     </div>
   );
 }
