@@ -6,7 +6,9 @@
       "Bash(rm -f client/src/api.js client/src/utils.js client/src/App.css client/src/index.css)",
       "Bash(rm -f client/src/components/BottomNav.jsx client/src/pages/AddItemPage.jsx client/src/pages/OrdersPage.jsx)",
       "Bash(rmdir server/jobs)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx vite:*)",
+      "Bash(node --check server.js)"
     ]
   }
 }

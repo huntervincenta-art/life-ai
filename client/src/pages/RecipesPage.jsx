@@ -100,23 +100,27 @@ function RecipeCard({ recipe, expiringItems }) {
 
       {recipe.description && <p className="muted mb-8" style={{ fontSize: 13 }}>{recipe.description}</p>}
 
-      {/* Ingredients */}
-      <div className="chip-group">
-        {recipe.ingredients.map((ing, i) => (
-          <span key={i} className="chip" style={{ cursor: 'default', minHeight: 'auto', padding: '4px 10px', fontSize: 12, background: ing.inPantry ? 'rgba(61,214,140,0.15)' : undefined, color: ing.inPantry ? 'var(--accent-success)' : undefined }}>
-            {ing.inPantry ? '✓ ' : ''}{ing.amount} {ing.unit} {ing.name}
-          </span>
-        ))}
-      </div>
-
-      {expanded && (
-        <div style={{ marginTop: 12 }}>
-          <p className="section-title">Instructions</p>
-          <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, lineHeight: 1.6 }}>
-            {recipe.instructions.map((step, i) => <li key={i}>{step}</li>)}
-          </ol>
+      <div className={expanded ? 'recipe-desktop-layout' : ''}>
+        {/* Ingredients */}
+        <div>
+          <div className="chip-group">
+            {recipe.ingredients.map((ing, i) => (
+              <span key={i} className="chip" style={{ cursor: 'default', minHeight: 'auto', padding: '4px 10px', fontSize: 12, background: ing.inPantry ? 'rgba(61,214,140,0.15)' : undefined, color: ing.inPantry ? 'var(--accent-success)' : undefined }}>
+                {ing.inPantry ? '✓ ' : ''}{ing.amount} {ing.unit} {ing.name}
+              </span>
+            ))}
+          </div>
         </div>
-      )}
+
+        {expanded && (
+          <div style={{ marginTop: 12 }}>
+            <p className="section-title">Instructions</p>
+            <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, lineHeight: 1.6 }}>
+              {recipe.instructions.map((step, i) => <li key={i}>{step}</li>)}
+            </ol>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

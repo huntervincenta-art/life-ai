@@ -42,6 +42,8 @@ export const life = {
   getPatterns: () => request('/life/patterns'),
   updatePattern: (id, data) => request(`/life/patterns/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   notifyCheckin: () => request('/life/notify-checkin', { method: 'POST' }),
+  seedPatterns: () => request('/life/patterns/seed', { method: 'POST' }),
+  getCustody: (weeks = 4) => request(`/life/custody?weeks=${weeks}`),
 };
 
 // ─── Routines ───

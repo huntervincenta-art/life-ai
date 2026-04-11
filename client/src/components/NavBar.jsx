@@ -20,21 +20,46 @@ export default function NavBar() {
   }, []);
 
   return (
-    <nav className="bottom-nav">
-      {tabs.map(tab => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          end={tab.to === '/'}
-          className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-icon">{tab.icon}</span>
-          {tab.badge && expiringCount > 0 && (
-            <span className="nav-badge">{expiringCount}</span>
-          )}
-          <span className="nav-label">{tab.label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <>
+      {/* Desktop Sidebar — hidden on mobile via CSS */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">Life AI 🧠</div>
+        <nav className="sidebar-nav">
+          {tabs.map(tab => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.to === '/'}
+              className={({ isActive }) => `sidebar-tab${isActive ? ' active' : ''}`}
+            >
+              <span className="nav-icon">{tab.icon}</span>
+              <span>{tab.label}</span>
+              {tab.badge && expiringCount > 0 && (
+                <span className="nav-badge">{expiringCount}</span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="sidebar-footer">Life AI v1.0</div>
+      </aside>
+
+      {/* Mobile Bottom Nav — hidden on desktop via CSS */}
+      <nav className="bottom-nav">
+        {tabs.map(tab => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            end={tab.to === '/'}
+            className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-icon">{tab.icon}</span>
+            {tab.badge && expiringCount > 0 && (
+              <span className="nav-badge">{expiringCount}</span>
+            )}
+            <span className="nav-label">{tab.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </>
   );
 }

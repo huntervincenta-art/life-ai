@@ -63,7 +63,7 @@ export default function RoutinesPage() {
 
   if (loading) return <div className="center-msg">Loading...</div>;
 
-  // Timer fullscreen
+  // Timer view — side-by-side on desktop, stacked on mobile
   if (timerTask) {
     return (
       <div className="page fade-in">
@@ -71,17 +71,21 @@ export default function RoutinesPage() {
           <h1 className="page-title">{timerTask.name}</h1>
           <button className="btn btn-sm btn-ghost" onClick={() => setTimerTask(null)}>Close</button>
         </div>
-        {timerTask.adhdStrategy && (
-          <div className="card card-accent mb-16">
-            <p className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Strategy</p>
-            <p style={{ fontWeight: 500, marginTop: 4 }}>{timerTask.adhdStrategy}</p>
+        <div className="routines-timer-layout">
+          <div>
+            <Timer minutes={timerTask.timerMinutes || 10} onComplete={() => handleComplete(timerTask._id)} />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button className="btn btn-success btn-lg" onClick={() => handleComplete(timerTask._id)}>
+                Done!
+              </button>
+            </div>
           </div>
-        )}
-        <Timer minutes={timerTask.timerMinutes || 10} onComplete={() => handleComplete(timerTask._id)} />
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <button className="btn btn-success btn-lg" onClick={() => handleComplete(timerTask._id)}>
-            Done!
-          </button>
+          {timerTask.adhdStrategy && (
+            <div className="card card-accent">
+              <p className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Strategy</p>
+              <p style={{ fontWeight: 500, marginTop: 4 }}>{timerTask.adhdStrategy}</p>
+            </div>
+          )}
         </div>
       </div>
     );

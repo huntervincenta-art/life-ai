@@ -170,6 +170,7 @@ export default function CheckInPage() {
         )}
       </div>
 
+      <div className="checkin-grid">
       {/* Activity */}
       <div className="section">
         <p className="section-title">What are you doing?</p>
@@ -277,10 +278,12 @@ export default function CheckInPage() {
       </div>
 
       {/* Notes */}
-      <div className="form-group">
+      <div className="form-group checkin-full">
         <label className="form-label">Notes (optional)</label>
         <textarea className="form-textarea" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Anything else..." />
       </div>
+
+      </div>{/* end checkin-grid */}
 
       <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={submitting}>
         {submitting ? 'Saving...' : 'Log Check-In'}

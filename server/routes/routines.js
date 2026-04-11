@@ -142,72 +142,85 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// POST /api/routines/seed-defaults — create default chore routines
+// POST /api/routines/seed-defaults — create default chore routines (idempotent)
 router.post('/seed-defaults', async (req, res) => {
   try {
-    const defaults = [
-      {
-        name: 'Do the dishes',
-        category: 'chore',
-        estimatedMinutes: 15,
-        preferredTime: { daysOfWeek: [0, 1, 2, 3, 4, 5, 6], hour: 20, flexibility: 'evening' },
-        timerEnabled: true,
-        timerMinutes: 15
-      },
-      {
-        name: 'Start laundry',
-        category: 'chore',
-        estimatedMinutes: 5,
-        preferredTime: { daysOfWeek: [1, 4], hour: 9, flexibility: 'morning' }
-      },
-      {
-        name: 'Move laundry to dryer',
-        category: 'chore',
-        estimatedMinutes: 5,
-        preferredTime: { daysOfWeek: [1, 4], hour: 10, flexibility: 'morning' }
-      },
-      {
-        name: 'Fold laundry',
-        category: 'chore',
-        estimatedMinutes: 20,
-        preferredTime: { daysOfWeek: [1, 4], hour: 19, flexibility: 'evening' },
-        timerEnabled: true,
-        timerMinutes: 20
-      },
-      {
-        name: 'Wipe down kitchen',
-        category: 'chore',
-        estimatedMinutes: 10,
-        preferredTime: { daysOfWeek: [0, 2, 4, 6], hour: 21, flexibility: 'evening' },
-        timerEnabled: true,
-        timerMinutes: 10
-      },
-      {
-        name: 'Trash walk',
-        category: 'chore',
-        description: 'Walk through every room with a trash bag',
-        estimatedMinutes: 10,
-        preferredTime: { daysOfWeek: [0, 3, 6], hour: 18, flexibility: 'evening' }
-      }
-    ];
-
-    const created = [];
-    for (const def of defaults) {
-      const choreType = def.name.toLowerCase().includes('dish') ? 'dishes'
-        : def.name.toLowerCase().includes('laundry') ? 'laundry'
-        : 'general_cleaning';
-      const strategy = getChoreStrategy(choreType);
-      def.adhdStrategy = `${strategy.name}: ${strategy.tip}`;
-
-      const routine = new RoutineTask(def);
-      await routine.save();
-      created.push(routine);
-    }
-
-    res.status(201).json(created);
+    const results = await seedDefaultRoutines();
+    res.status(201).json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+export async function seedDefaultRoutines() {
+  const defaults = [
+    {
+      name: 'Do the dishes',
+      category: 'chore',
+      estimatedMinutes: 15,
+      preferredTime: { daysOfWeek: [0, 1, 2, 3, 4, 5, 6], hour: 22, flexibility: 'evening' },
+      timerEnabled: true,
+      timerMinutes: 15
+    },
+    {
+      name: 'Start laundry',
+      category: 'chore',
+      estimatedMinutes: 5,
+      preferredTime: { daysOfWeek: [1, 3, 5], hour: 11, flexibility: 'morning' }
+    },
+    {
+      name: 'Move laundry to dryer',
+      category: 'chore',
+      estimatedMinutes: 5,
+      preferredTime: { daysOfWeek: [1, 3, 5], hour: 12, flexibility: 'afternoon' }
+    },
+    {
+      name: 'Fold laundry',
+      category: 'chore',
+      estimatedMinutes: 20,
+      preferredTime: { daysOfWeek: [1, 3, 5], hour: 14, flexibility: 'afternoon' },
+      timerEnabled: true,
+      timerMinutes: 20
+    },
+    {
+      name: 'Wipe down kitchen',
+      category: 'chore',
+      estimatedMinutes: 10,
+      preferredTime: { daysOfWeek: [0, 1, 2, 3, 4, 5, 6], hour: 23, flexibility: 'evening' },
+      timerEnabled: true,
+      timerMinutes: 10
+    },
+    {
+      name: 'Trash walk',
+      category: 'chore',
+      description: 'Walk through every room with a trash bag',
+      estimatedMinutes: 10,
+      preferredTime: { daysOfWeek: [2, 5], hour: 20, flexibility: 'evening' }
+    }
+  ];
+
+  const created = [];
+  const skipped = [];
+
+  for (const def of defaults) {
+    const exists = await RoutineTask.findOne({ name: def.name });
+    if (exists) {
+      skipped.push(def.name);
+      continue;
+    }
+
+    const choreType = def.name.toLowerCase().includes('dish') ? 'dishes'
+      : def.name.toLowerCase().includes('laundry') ? 'laundry'
+      : 'general_cleaning';
+    const strategy = getChoreStrategy(choreType);
+    def.adhdStrategy = `${strategy.name}: ${strategy.tip}`;
+
+    const routine = new RoutineTask(def);
+    await routine.save();
+    created.push(routine);
+  }
+
+  return { created, skipped };
+}
 
 export default router;

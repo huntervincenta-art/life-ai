@@ -183,4 +183,186 @@ router.post('/notify-checkin', async (req, res) => {
   }
 });
 
+// POST /api/life/patterns/seed — seed personal patterns (idempotent)
+router.post('/patterns/seed', async (req, res) => {
+  try {
+    const results = await seedPatterns();
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/life/custody — custody schedule info for calendar
+router.get('/custody', (req, res) => {
+  const { weeks } = req.query;
+  const numWeeks = parseInt(weeks) || 4;
+  const today = new Date();
+  const result = [];
+
+  for (let w = 0; w < numWeeks; w++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + (w * 7)); // Sunday of each week
+    weekStart.setHours(0, 0, 0, 0);
+
+    const days = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + d);
+      const dayOfWeek = date.getDay();
+
+      const custody = getCustodyForDate(date);
+      days.push({
+        date: date.toISOString().split('T')[0],
+        dayOfWeek,
+        ...custody
+      });
+    }
+
+    const satDate = new Date(weekStart);
+    satDate.setDate(weekStart.getDate() + 6);
+    const weekInfo = getCustodyWeek(satDate);
+
+    result.push({
+      weekNumber: weekInfo.weekNumber,
+      isMyWeekend: weekInfo.isMyWeekend,
+      days
+    });
+  }
+
+  res.json(result);
+});
+
+// ─── Custody Helpers ───
+
+function getCustodyWeek(date) {
+  const anchorDate = new Date('2026-03-28T00:00:00');
+  const anchorWeekNumber = 4;
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+
+  const d = new Date(date);
+  const dayOfWeek = d.getDay();
+  const saturday = new Date(d);
+  saturday.setDate(d.getDate() + (6 - dayOfWeek));
+  saturday.setHours(0, 0, 0, 0);
+
+  const anchorSat = new Date(anchorDate);
+  anchorSat.setHours(0, 0, 0, 0);
+
+  const weeksDiff = Math.round((saturday - anchorSat) / msPerWeek);
+  const cycleWeek = ((weeksDiff % 4) + 4) % 4;
+  const actualWeek = ((cycleWeek + anchorWeekNumber - 1) % 4) + 1;
+
+  return {
+    weekNumber: actualWeek,
+    isMyWeekend: actualWeek !== 4,
+    isMomsWeekend: actualWeek === 4
+  };
+}
+
+function getCustodyForDate(date) {
+  const dayOfWeek = date.getDay();
+  const weekInfo = getCustodyWeek(date);
+
+  // Monday & Wednesday afternoons are ALWAYS mine
+  const isWeekdayAfternoon = (dayOfWeek === 1 || dayOfWeek === 3);
+
+  // Weekend days (Fri evening, Sat, Sun) depend on cycle
+  const isWeekendDay = (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0);
+  const hasKidsWeekend = isWeekendDay && weekInfo.isMyWeekend;
+
+  return {
+    hasKids: hasKidsWeekend || isWeekdayAfternoon,
+    isWeekdayAfternoon,
+    isWeekendCustody: hasKidsWeekend,
+    isMomsWeekend: isWeekendDay && weekInfo.isMomsWeekend,
+    custodyHours: isWeekdayAfternoon ? '3:30pm-7pm' : hasKidsWeekend ? (dayOfWeek === 5 ? '5pm+' : 'All day') : null
+  };
+}
+
+// ─── Pattern Seeding ───
+
+export async function seedPatterns() {
+  const SEED_PATTERNS = [
+    {
+      name: 'Kids custody - weekends',
+      type: 'custody',
+      schedule: {
+        daysOfWeek: [5, 6, 0],
+        startHour: 17,
+        endHour: 18,
+        frequency: 'custom'
+      },
+      metadata: {
+        cycle: '3 weekends on, 1 weekend off, 4-week rotation',
+        cycleAnchorDate: '2026-03-28',
+        cycleWeekNumber: 4,
+        weekdayVisits: 'Monday and Wednesday 3:30pm-7pm every week regardless of weekend'
+      },
+      confidenceScore: 1.0,
+      source: 'user_input',
+      isActive: true
+    },
+    {
+      name: 'Kids custody - weekday afternoons',
+      type: 'custody',
+      schedule: {
+        daysOfWeek: [1, 3],
+        startHour: 15,
+        endHour: 19,
+        frequency: 'weekly'
+      },
+      confidenceScore: 1.0,
+      source: 'user_input',
+      isActive: true
+    },
+    {
+      name: 'Work schedule',
+      type: 'work',
+      schedule: {
+        daysOfWeek: [1, 2, 3, 4, 5],
+        startHour: 10,
+        endHour: 18,
+        frequency: 'weekdays'
+      },
+      metadata: {
+        style: 'Flexible/remote, content creation for MFS',
+        note: 'No fixed hours, generally working during the day'
+      },
+      confidenceScore: 0.6,
+      source: 'user_input',
+      isActive: true
+    },
+    {
+      name: 'Sleep schedule',
+      type: 'sleep',
+      schedule: {
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        startHour: 1,
+        endHour: 10,
+        frequency: 'daily'
+      },
+      confidenceScore: 0.9,
+      source: 'user_input',
+      isActive: true
+    }
+  ];
+
+  const created = [];
+  const skipped = [];
+
+  for (const p of SEED_PATTERNS) {
+    const exists = await Pattern.findOne({ name: p.name });
+    if (exists) {
+      skipped.push(p.name);
+      continue;
+    }
+    const pattern = new Pattern(p);
+    await pattern.save();
+    created.push(p.name);
+  }
+
+  return { created, skipped };
+}
+
 export default router;

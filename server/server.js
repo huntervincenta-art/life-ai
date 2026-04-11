@@ -11,8 +11,10 @@ import lifeLogRoutes from './routes/lifeLog.js';
 import routineRoutes from './routes/routines.js';
 import orderRoutes from './routes/orders.js';
 
-import { PantryItem, Onboarding, RoutineTask } from './models/index.js';
+import { PantryItem, Onboarding, RoutineTask, Pattern } from './models/index.js';
 import { notifyExpiringItem, notifyChoreReminder, notifyDataCheckin } from './services/ntfyService.js';
+import { seedPatterns } from './routes/lifeLog.js';
+import { seedDefaultRoutines } from './routes/routines.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,8 +52,8 @@ if (fs.existsSync(clientDistPath)) {
 
 // ─── CRON JOBS ───
 
-// 1. Daily 9am — expiry check
-cron.schedule('0 9 * * *', async () => {
+// 1. Daily 11am — expiry check (night owl schedule)
+cron.schedule('0 11 * * *', async () => {
   try {
     console.log('[Cron] Running daily expiry check...');
     const items = await PantryItem.find({
@@ -77,8 +79,8 @@ cron.schedule('0 9 * * *', async () => {
   }
 });
 
-// 2. Hourly 8am-11pm — data gathering check-in reminder
-cron.schedule('0 8-23 * * *', async () => {
+// 2. Hourly 10am-11pm — data gathering check-in reminder (no pings before 10am)
+cron.schedule('0 10-23 * * *', async () => {
   try {
     const onboarding = await Onboarding.findOne();
     if (onboarding?.phase === 'data_gathering') {
@@ -97,8 +99,9 @@ cron.schedule('0,30 * * * *', async () => {
     const currentHour = now.getHours();
     const currentDay = now.getDay();
 
-    // Only send at top of hour
+    // Only send at top of hour, and not before 10am
     if (now.getMinutes() > 5) return;
+    if (currentHour < 10) return;
 
     const tasks = await RoutineTask.find({
       isActive: true,
@@ -128,6 +131,22 @@ async function start() {
     try {
       await mongoose.connect(process.env.MONGODB_URI);
       console.log('Connected to MongoDB');
+
+      // Auto-seed patterns and routines if collections are empty
+      try {
+        const patternCount = await Pattern.countDocuments();
+        if (patternCount === 0) {
+          const pResult = await seedPatterns();
+          console.log(`[Seed] Patterns: created ${pResult.created.length}`);
+        }
+        const routineCount = await RoutineTask.countDocuments();
+        if (routineCount === 0) {
+          const rResult = await seedDefaultRoutines();
+          console.log(`[Seed] Routines: created ${rResult.created.length}`);
+        }
+      } catch (seedErr) {
+        console.error('[Seed] Error:', seedErr.message);
+      }
     } catch (err) {
       console.error('MongoDB connection error:', err.message);
       console.log('Starting server without database...');
