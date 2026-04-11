@@ -32,6 +32,7 @@ export const pantry = {
 
 // ─── Life / Onboarding ───
 export const life = {
+  getRightNow: () => request('/life/right-now'),
   getOnboarding: () => request('/life/onboarding'),
   startOnboarding: () => request('/life/onboarding/start', { method: 'POST' }),
   checkin: (data) => request('/life/checkin', { method: 'POST', body: JSON.stringify(data) }),

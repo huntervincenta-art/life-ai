@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { LifeLog, Onboarding, Pattern } from '../models/index.js';
+import { PantryItem, RoutineTask } from '../models/index.js';
 import { generatePatterns } from '../services/patternDetector.js';
 import { notifyDataCheckin } from '../services/ntfyService.js';
+import { getKidSuggestions } from '../services/kidsConfig.js';
+import { DAILY_TIPS } from '../services/adhdStrategies.js';
 
 const router = Router();
 
@@ -18,6 +21,149 @@ router.get('/onboarding', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/life/right-now — single most important thing
+router.get('/right-now', async (req, res) => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const currentHour = now.getHours();
+    const currentDay = now.getDay();
+
+    // 1. Food expiring today or already expired
+    const urgentFood = await PantryItem.findOne({
+      isConsumed: false,
+      isFood: true,
+      estimatedExpiry: { $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000), $exists: true }
+    }).sort({ estimatedExpiry: 1 });
+
+    if (urgentFood) {
+      const daysLeft = Math.ceil((urgentFood.estimatedExpiry - now) / (24 * 60 * 60 * 1000));
+      return res.json({
+        type: 'expiring_food',
+        title: `Use up: ${urgentFood.name}`,
+        subtitle: daysLeft <= 0 ? 'Expired' : 'Expires today',
+        tip: 'Check the recipes page for ideas before it goes to waste.',
+        action: { label: 'See Recipes', url: '/recipes' },
+        secondaryActions: [
+          { label: 'Already used it', action: 'consume', itemId: urgentFood._id },
+          { label: 'Toss it', action: 'consume', itemId: urgentFood._id }
+        ]
+      });
+    }
+
+    // 2. Overdue chore (scheduled for earlier today, not completed)
+    const todayTasks = await RoutineTask.find({
+      isActive: true,
+      'preferredTime.daysOfWeek': currentDay
+    }).sort({ 'preferredTime.hour': 1 });
+
+    const overdueTask = todayTasks.find(t => {
+      if (t.lastCompleted && new Date(t.lastCompleted) >= todayStart) return false;
+      return (t.preferredTime?.hour || 0) <= currentHour;
+    });
+
+    if (overdueTask) {
+      return res.json(buildChoreResponse(overdueTask));
+    }
+
+    // 3. Next scheduled chore within 2 hours
+    const upcomingTask = todayTasks.find(t => {
+      if (t.lastCompleted && new Date(t.lastCompleted) >= todayStart) return false;
+      const taskHour = t.preferredTime?.hour || 0;
+      return taskHour > currentHour && taskHour <= currentHour + 2;
+    });
+
+    if (upcomingTask) {
+      return res.json(buildChoreResponse(upcomingTask));
+    }
+
+    // 4. Kid activity if kids are here
+    const kidsStatus = areKidsHere();
+    if (kidsStatus.here) {
+      const suggestions = getKidSuggestions();
+      // Randomly pick Rose or Will
+      const kid = Math.random() < 0.5 ? 'rose' : 'will';
+      const activity = suggestions[kid];
+      const emoji = kid === 'rose' ? '🎨' : '🏎️';
+      const name = kid === 'rose' ? 'Rose' : 'Will';
+      return res.json({
+        type: 'kid_activity',
+        title: `${name}: ${activity.title}`,
+        subtitle: null,
+        emoji,
+        tip: activity.desc,
+        kidsUntil: kidsStatus.until,
+        action: { label: 'Shuffle', action: 'refresh' },
+        secondaryActions: [
+          { label: kid === 'rose' ? "Will's turn" : "Rose's turn", action: 'refresh' }
+        ]
+      });
+    }
+
+    // 5. Calm state
+    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000));
+    const tip = DAILY_TIPS[dayOfYear % DAILY_TIPS.length];
+
+    res.json({
+      type: 'calm',
+      title: "You're all caught up.",
+      subtitle: null,
+      tip,
+      action: null,
+      secondaryActions: null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function buildChoreResponse(task) {
+  return {
+    type: 'chore',
+    title: task.name,
+    subtitle: task.estimatedMinutes ? `~${task.estimatedMinutes} minutes` : null,
+    tip: task.adhdStrategy || null,
+    timerMinutes: task.timerMinutes || task.estimatedMinutes || 10,
+    action: { label: 'Start Timer', taskId: task._id },
+    secondaryActions: [
+      { label: 'skip', action: 'skip', taskId: task._id },
+      { label: 'done', action: 'complete', taskId: task._id },
+      { label: 'later', action: 'dismiss' }
+    ]
+  };
+}
+
+function areKidsHere() {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const currentTime = hour + minute / 60;
+
+  // Monday or Wednesday: 3:30pm - 7pm every week
+  if ((day === 1 || day === 3) && currentTime >= 15.5 && currentTime < 19) {
+    return { here: true, until: '7pm tonight' };
+  }
+
+  // Weekend custody: Friday 3:30pm to Monday 8am (3 on, 1 off)
+  const anchor = new Date('2026-03-28T00:00:00');
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksDiff = Math.floor((now - anchor) / msPerWeek);
+  const cycleWeek = ((weeksDiff % 4) + 4) % 4;
+  // cycleWeek 0 = mom's weekend (anchor week), 1/2/3 = my weekends
+  const isMyWeekend = cycleWeek !== 0;
+
+  if (isMyWeekend) {
+    if (day === 5 && currentTime >= 15.5) return { here: true, until: 'Monday 8am' };
+    if (day === 6) return { here: true, until: 'Monday 8am' };
+    if (day === 0) return { here: true, until: 'Monday 8am' };
+    if (day === 1 && currentTime < 8) return { here: true, until: '8am this morning' };
+  }
+
+  return { here: false };
+}
 
 // POST /api/life/onboarding/start — begin data gathering phase
 router.post('/onboarding/start', async (req, res) => {
