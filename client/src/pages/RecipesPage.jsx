@@ -5,7 +5,7 @@ import BionicText from '../components/BionicText';
 
 const RECIPE_TEMPLATES = [
   {
-    title: 'Quick Stir Fry',
+    title: 'Quick stir fry',
     description: 'Toss whatever veggies you have with protein and sauce.',
     ingredients: [
       { name: 'Any protein', amount: '1 lb', inPantry: false },
@@ -17,7 +17,7 @@ const RECIPE_TEMPLATES = [
     prepTime: 10, cookTime: 20, difficulty: 'easy', kidFriendly: true
   },
   {
-    title: 'One-Pot Pasta',
+    title: 'One-pot pasta',
     description: 'Everything in one pot. Minimal cleanup.',
     ingredients: [
       { name: 'Pasta', amount: '12 oz', inPantry: false },
@@ -29,7 +29,7 @@ const RECIPE_TEMPLATES = [
     prepTime: 5, cookTime: 15, difficulty: 'easy', kidFriendly: true
   },
   {
-    title: 'Sheet Pan Dinner',
+    title: 'Sheet pan dinner',
     description: 'Chop, season, roast. Done.',
     ingredients: [
       { name: 'Chicken or sausage', amount: '1 lb', inPantry: false },
@@ -64,15 +64,15 @@ export default function RecipesPage() {
   if (loading) return <div className="center-msg">Loading...</div>;
 
   return (
-    <div className="page fade-in">
+    <div className="page">
       <div className="page-header">
         <h1 className="page-title">Recipes</h1>
       </div>
 
       {/* Expiring highlight */}
       {expiring.length > 0 && (
-        <div className="card mb-16" style={{ borderLeftColor: 'var(--accent-warning)', borderLeftWidth: 3 }}>
-          <div className="section-title" style={{ color: 'var(--accent-warning)', borderLeftColor: 'var(--accent-warning)' }}>Use these up</div>
+        <div className="card mb-16">
+          <div className="section-title" style={{ color: 'var(--accent-warning)' }}>Use these up</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {expiring.slice(0, 5).map(item => {
               const days = daysUntil(item.estimatedExpiry);
@@ -97,7 +97,7 @@ export default function RecipesPage() {
           Get recipe ideas based on what you have
         </p>
         <button className="btn btn-primary btn-lg" onClick={handleGenerate}>
-          Generate Recipes
+          Generate recipes
         </button>
       </div>
 
@@ -106,7 +106,7 @@ export default function RecipesPage() {
         <div key={i} className="card" style={{ cursor: 'pointer' }} onClick={() => setExpandedRecipe(expandedRecipe === i ? null : i)}>
           <div className="flex-between">
             <div>
-              <p style={{ fontWeight: 600, fontSize: 15 }}>{r.title}</p>
+              <p style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{r.title}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                 {r.prepTime + r.cookTime} min | {r.difficulty}{r.kidFriendly ? ' | kid-friendly' : ''}
               </p>

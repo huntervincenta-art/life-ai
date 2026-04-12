@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import { pantry } from '../utils/api';
 
 const tabs = [
-  { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/pantry', label: 'Pantry', icon: '🧊', badge: true },
-  { to: '/routines', label: 'Routines', icon: '✅' },
-  { to: '/checkin', label: 'Check-In', icon: '📊' },
-  { to: '/recipes', label: 'Recipes', icon: '🍳' },
+  { to: '/', label: 'Home', icon: '⌂' },
+  { to: '/pantry', label: 'Pantry', icon: '❄', badge: true },
+  { to: '/routines', label: 'Routines', icon: '◉' },
+  { to: '/checkin', label: 'Check-in', icon: '◫' },
+  { to: '/recipes', label: 'Recipes', icon: '♨' },
 ];
 
 export default function NavBar() {
@@ -21,9 +21,9 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Desktop Sidebar — hidden on mobile via CSS */}
+      {/* Desktop Sidebar */}
       <aside className="sidebar">
-        <Link to="/" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>Life AI 🧠</Link>
+        <Link to="/" className="sidebar-logo" style={{ textDecoration: 'none' }}>Life AI</Link>
         <nav className="sidebar-nav">
           {tabs.map(tab => (
             <NavLink
@@ -42,7 +42,7 @@ export default function NavBar() {
         </nav>
       </aside>
 
-      {/* Mobile Bottom Nav — hidden on desktop via CSS */}
+      {/* Mobile Bottom Nav */}
       <nav className="bottom-nav">
         {tabs.map(tab => (
           <NavLink

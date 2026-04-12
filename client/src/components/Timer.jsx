@@ -21,7 +21,6 @@ export default function Timer({ minutes = 5, onComplete }) {
       setRemaining(prev => {
         if (prev <= 1) {
           stop();
-          // Vibrate on mobile
           if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
           onComplete?.();
           return 0;

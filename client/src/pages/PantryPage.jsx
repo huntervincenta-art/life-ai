@@ -60,7 +60,7 @@ export default function PantryPage() {
   if (loading) return <div className="center-msg">Loading...</div>;
 
   return (
-    <div className="page fade-in">
+    <div className="page">
       <div className="page-header">
         <h1 className="page-title">Pantry</h1>
         <button className="btn btn-sm" onClick={() => setShowAdd(!showAdd)}>
@@ -97,7 +97,7 @@ export default function PantryPage() {
               <button type="button" className={`toggle${addForm.isFood ? ' active' : ''}`} onClick={() => setAddForm(f => ({ ...f, isFood: !f.isFood }))} />
             </div>
           </div>
-          <button className="btn btn-primary btn-lg" type="submit">Add to Pantry</button>
+          <button className="btn btn-primary btn-lg" type="submit">Add to pantry</button>
         </form>
       )}
 
@@ -114,7 +114,7 @@ export default function PantryPage() {
       {items.length === 0 ? (
         <div className="empty-state">
           <p>No items found.</p>
-          <p style={{ color: 'var(--text-muted)' }}>Add items or change your filter.</p>
+          <p>Add items or change your filter.</p>
         </div>
       ) : (
         Object.keys(grouped).sort().map(cat => (

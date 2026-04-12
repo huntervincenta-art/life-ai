@@ -20,12 +20,12 @@ export default function CustodyCalendar() {
 
   return (
     <div className="custody-calendar">
-      <p className="section-title">Custody Schedule</p>
+      <p className="section-title">Custody schedule</p>
 
       {/* Day-of-week header */}
       <div className="custody-week" style={{ marginBottom: 2 }}>
         {DAY_ABBR.map(d => (
-          <div key={d} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div key={d} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>
             {d}
           </div>
         ))}
@@ -60,9 +60,9 @@ export default function CustodyCalendar() {
       ))}
 
       <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: 'var(--text-muted)' }}>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: 'rgba(92,224,216,0.3)', marginRight: 4, verticalAlign: 'middle' }}></span>My weekend</span>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: 'rgba(92,224,216,0.12)', marginRight: 4, verticalAlign: 'middle' }}></span>Mon/Wed PM</span>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: 'var(--bg-surface2)', marginRight: 4, verticalAlign: 'middle', opacity: 0.5 }}></span>Mom's</span>
+        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: 'var(--accent-primary-light)', marginRight: 4, verticalAlign: 'middle' }}></span>My weekend</span>
+        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: 'var(--accent-secondary-light)', marginRight: 4, verticalAlign: 'middle' }}></span>Mon/Wed PM</span>
+        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: 'var(--bg-secondary)', marginRight: 4, verticalAlign: 'middle', opacity: 0.5 }}></span>Mom's</span>
       </div>
     </div>
   );

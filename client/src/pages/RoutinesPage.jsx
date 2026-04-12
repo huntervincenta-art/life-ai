@@ -47,7 +47,7 @@ export default function RoutinesPage() {
   // Timer view
   if (timerTask) {
     return (
-      <div className="page fade-in">
+      <div className="page">
         <div className="page-header">
           <h1 className="page-title">{timerTask.name}</h1>
           <button className="btn-sm btn-ghost" onClick={() => setTimerTask(null)}>Close</button>
@@ -69,7 +69,7 @@ export default function RoutinesPage() {
   }
 
   return (
-    <div className="page fade-in">
+    <div className="page">
       <div className="page-header">
         <h1 className="page-title">Routines</h1>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -86,7 +86,7 @@ export default function RoutinesPage() {
             <div className="empty-state">
               <p>Nothing scheduled today.</p>
               <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={async () => { await routines.seedDefaults(); load(); }}>
-                Seed Default Routines
+                Seed default routines
               </button>
             </div>
           ) : (
@@ -94,7 +94,7 @@ export default function RoutinesPage() {
               const done = isDone(task);
               return (
                 <div key={task._id} className="list-item" style={{ opacity: done ? 0.4 : 1, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 14, color: done ? 'var(--accent-green)' : 'var(--text-muted)', width: 20 }}>
+                  <span style={{ fontSize: 14, color: done ? 'var(--accent-success)' : 'var(--text-muted)', width: 20 }}>
                     {done ? '✓' : '○'}
                   </span>
                   <div className="list-item-body">
@@ -107,7 +107,7 @@ export default function RoutinesPage() {
                     <div style={{ width: '100%', display: 'flex', gap: 6, marginTop: 6, paddingLeft: 30 }}>
                       <button className="btn btn-success" style={{ flex: 1 }} onClick={() => handleComplete(task._id)}>Done</button>
                       <button className="btn-sm btn-ghost" onClick={() => handleSkip(task._id)}>Skip</button>
-                      {task.timerEnabled && <button className="btn-sm" style={{ borderColor: 'var(--accent)' , color: 'var(--accent)' }} onClick={() => setTimerTask(task)}>Timer</button>}
+                      {task.timerEnabled && <button className="btn-sm" style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }} onClick={() => setTimerTask(task)}>Timer</button>}
                     </div>
                   )}
 

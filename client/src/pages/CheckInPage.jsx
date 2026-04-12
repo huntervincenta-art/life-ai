@@ -81,13 +81,13 @@ export default function CheckInPage() {
   // Pre-gathering
   if (!onboarding || onboarding.phase === 'not_started') {
     return (
-      <div className="page fade-in">
-        <div className="page-header"><h1 className="page-title">Check-In</h1></div>
+      <div className="page">
+        <div className="page-header"><h1 className="page-title">Check-in</h1></div>
         <div className="focus-card">
           <div className="focus-card-emoji">📊</div>
-          <div className="focus-card-title">Learn Your Patterns</div>
+          <div className="focus-card-title">Learn your patterns</div>
           <BionicText as="div" className="focus-card-desc">Check in throughout the day for 7 days. Life AI will learn your routines and energy cycles.</BionicText>
-          <button className="btn btn-primary btn-lg" onClick={handleStart}>Start Data Gathering</button>
+          <button className="btn btn-primary btn-lg" onClick={handleStart}>Start data gathering</button>
         </div>
       </div>
     );
@@ -96,13 +96,13 @@ export default function CheckInPage() {
   // Pattern review
   if (onboarding.phase === 'pattern_review') {
     return (
-      <div className="page fade-in">
-        <div className="page-header"><h1 className="page-title">Check-In</h1></div>
+      <div className="page">
+        <div className="page-header"><h1 className="page-title">Check-in</h1></div>
         <div className="focus-card">
           <div className="focus-card-emoji">🎉</div>
-          <div className="focus-card-title">Data Gathering Complete</div>
+          <div className="focus-card-title">Data gathering complete</div>
           <div className="focus-card-desc">{onboarding.totalCheckins} check-ins collected. Ready to analyze.</div>
-          <button className="btn btn-primary btn-lg" onClick={handleGeneratePatterns}>Analyze My Patterns</button>
+          <button className="btn btn-primary btn-lg" onClick={handleGeneratePatterns}>Analyze my patterns</button>
         </div>
       </div>
     );
@@ -111,8 +111,8 @@ export default function CheckInPage() {
   // Success
   if (submitted) {
     return (
-      <div className="page fade-in">
-        <div className="page-header"><h1 className="page-title">Check-In</h1></div>
+      <div className="page">
+        <div className="page-header"><h1 className="page-title">Check-in</h1></div>
         <div className="focus-card">
           <div className="focus-card-emoji">✅</div>
           <div className="focus-card-title">Logged</div>
@@ -122,7 +122,7 @@ export default function CheckInPage() {
           <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={() => {
             setSubmitted(false);
             setForm({ activity: '', location: 'home', people: [], energy: 3, mood: 3, hadMeal: false, mealType: null, choresCompleted: [], notes: '', isRoutine: false, routineFrequency: null, kidsPresent: false });
-          }}>Log Another</button>
+          }}>Log another</button>
         </div>
       </div>
     );
@@ -131,9 +131,9 @@ export default function CheckInPage() {
   const activities = showMoreActivities ? [...TOP_ACTIVITIES, ...MORE_ACTIVITIES] : TOP_ACTIVITIES;
 
   return (
-    <div className="page fade-in">
+    <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Check-In</h1>
+        <h1 className="page-title">Check-in</h1>
         {onboarding.phase === 'data_gathering' && (
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{onboarding.totalCheckins}/{onboarding.targetCheckins}</span>
         )}
@@ -237,7 +237,7 @@ export default function CheckInPage() {
 
       <div className="sticky-submit">
         <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? 'Saving...' : 'Log Check-In'}
+          {submitting ? 'Saving...' : 'Log check-in'}
         </button>
       </div>
     </div>
