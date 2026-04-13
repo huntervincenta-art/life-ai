@@ -8,8 +8,10 @@ export default function EditPanel({ fields, values, onSave, onDelete, onCancel }
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
+  const stop = (e) => e.stopPropagation();
+
   return (
-    <div className="edit-panel">
+    <div className="edit-panel" onClick={stop} onMouseDown={stop}>
       {fields.map(f => (
         <div className="form-group" key={f.key}>
           <label className="form-label">{f.label}</label>
@@ -18,6 +20,8 @@ export default function EditPanel({ fields, values, onSave, onDelete, onCancel }
               className="form-select"
               value={form[f.key] || ''}
               onChange={e => handleChange(f.key, e.target.value)}
+              onClick={stop}
+              onMouseDown={stop}
             >
               {f.options.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -29,7 +33,7 @@ export default function EditPanel({ fields, values, onSave, onDelete, onCancel }
               <button
                 type="button"
                 className={`toggle ${form[f.key] ? 'active' : ''}`}
-                onClick={() => handleChange(f.key, !form[f.key])}
+                onClick={(e) => { stop(e); handleChange(f.key, !form[f.key]); }}
               />
             </div>
           ) : (
@@ -38,6 +42,8 @@ export default function EditPanel({ fields, values, onSave, onDelete, onCancel }
               type={f.type || 'text'}
               value={form[f.key] || ''}
               onChange={e => handleChange(f.key, f.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
+              onClick={stop}
+              onMouseDown={stop}
             />
           )}
         </div>

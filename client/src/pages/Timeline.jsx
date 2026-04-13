@@ -53,37 +53,23 @@ function DifficultyBadge({ difficulty, type }) {
   return <span className={cls}>{difficulty}</span>;
 }
 
-// Pay button that appears for urgent bills
-function PayButton({ vendor, onLookupPay, lookingUp }) {
-  if (vendor.payUrl) {
+// Prominent Pay button for the card header row — used on urgent bills
+function HeaderPayButton({ vendor, onLookupPay, lookingUp, onExpand }) {
+  const url = vendor.payUrl || vendor.accountUrl || vendor.manageUrl || vendor.loginUrl;
+  if (url) {
     return (
-      <a href={vendor.payUrl} target="_blank" rel="noopener noreferrer"
-        className="action-btn action-btn-pay-primary" onClick={e => e.stopPropagation()}>
-        <CreditCard size={10} /> Pay Now
-      </a>
-    );
-  }
-  if (vendor.accountUrl) {
-    return (
-      <a href={vendor.accountUrl} target="_blank" rel="noopener noreferrer"
-        className="action-btn action-btn-pay" onClick={e => e.stopPropagation()}>
-        <ExternalLink size={10} /> Go to Account
-      </a>
-    );
-  }
-  if (vendor.manageUrl || vendor.loginUrl) {
-    return (
-      <a href={vendor.manageUrl || vendor.loginUrl} target="_blank" rel="noopener noreferrer"
-        className="action-btn action-btn-pay" onClick={e => e.stopPropagation()}>
-        <ExternalLink size={10} /> Pay / Manage
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="header-pay-btn" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+        <CreditCard size={12} /> Pay
       </a>
     );
   }
   return (
-    <button className="action-btn action-btn-lookup" disabled={lookingUp}
-      onClick={e => { e.stopPropagation(); onLookupPay(); }}>
-      {lookingUp ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Search size={10} />}
-      {lookingUp ? 'Looking up...' : 'Find payment page'}
+    <button className="header-pay-btn header-pay-btn-lookup" disabled={lookingUp}
+      onClick={e => { e.stopPropagation(); onLookupPay(); }}
+      onMouseDown={e => e.stopPropagation()}>
+      {lookingUp ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <CreditCard size={12} />}
+      {lookingUp ? '...' : 'Pay'}
     </button>
   );
 }
@@ -405,11 +391,13 @@ export default function Timeline({ refreshKey }) {
 
           return (
             <div key={v._id}>
-              <div
-                className={`bill-card ${getCardClass(v.nextExpectedDate)}`}
-                onClick={() => setExpandedId(isExpanded ? null : v._id)}
-              >
-                <div className="bill-card-header">
+              <div className={`bill-card ${getCardClass(v.nextExpectedDate)}`}>
+                {/* Header row — only this toggles expand/collapse */}
+                <div
+                  className="bill-card-header"
+                  onClick={() => setExpandedId(isExpanded ? null : v._id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="bill-card-left">
                     <div className="bill-vendor">
                       <span className={`confidence-dot ${getConfidenceClass(v.confidence)}`} />
@@ -421,16 +409,17 @@ export default function Timeline({ refreshKey }) {
                     <div className="bill-meta">
                       <span className="badge">{v.category}</span>
                       <span className={`bill-due ${due.className}`}>{due.label}</span>
-                      {due.isUrgent && (
-                        <PayButton
-                          vendor={v}
-                          onLookupPay={() => doLookup(v._id, lookupVendorPayment, setLookingUpPay)}
-                          lookingUp={!!lookingUpPay[v._id]}
-                        />
-                      )}
                     </div>
                   </div>
                   <div className="bill-amount">${amount.toFixed(2)}</div>
+                  {due.isUrgent && (
+                    <HeaderPayButton
+                      vendor={v}
+                      onLookupPay={() => doLookup(v._id, lookupVendorPayment, setLookingUpPay)}
+                      lookingUp={!!lookingUpPay[v._id]}
+                      onExpand={() => setExpandedId(v._id)}
+                    />
+                  )}
                 </div>
 
                 {due.isUrgent && (
@@ -453,8 +442,9 @@ export default function Timeline({ refreshKey }) {
                   />
                 )}
 
+                {/* Expanded panel — clicks here do NOT collapse the card */}
                 {isExpanded && (
-                  <>
+                  <div onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
                     <EditPanel
                       fields={[
                         { key: 'nextExpectedDate', label: 'Next Expected Date', type: 'date' },
@@ -493,7 +483,7 @@ export default function Timeline({ refreshKey }) {
                       refreshing={!!refreshingCancel[v._id]}
                       onMarkCancelled={() => handleMarkCancelled(v._id)}
                     />
-                  </>
+                  </div>
                 )}
               </div>
             </div>
