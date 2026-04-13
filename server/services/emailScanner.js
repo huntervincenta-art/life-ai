@@ -105,7 +105,7 @@ export async function scanEmails(user) {
     imap = await connectImap(gmailUser, gmailAppPassword);
     await openInbox(imap);
 
-    const sinceDate = user.lastScanAt || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sinceDate = user.lastScanAt || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const { orCriteria } = buildSearchCriteria(sinceDate);
 
     // Search for each criteria separately, then deduplicate UIDs
@@ -119,8 +119,10 @@ export async function scanEmails(user) {
       }
     }
 
-    const uidArray = Array.from(allUids);
-    console.log(`[EmailScanner] Found ${uidArray.length} matching emails since ${sinceDate.toISOString()}`);
+    // Sort descending (newest first) and cap at 25
+    const allUidsSorted = Array.from(allUids).sort((a, b) => b - a);
+    const uidArray = allUidsSorted.slice(0, 25);
+    console.log(`[EmailScanner] Processing ${uidArray.length} of ${allUidsSorted.length} matching emails (capped at 25)`);
 
     const emails = [];
     for (const uid of uidArray) {

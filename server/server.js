@@ -28,15 +28,24 @@ app.use('/api', async (req, res, next) => {
     const email = process.env.GMAIL_USER || 'default@life-ai.local';
     let user = await User.findOne({ email });
     if (!user) {
-      user = await User.create({
-        email,
-        displayName: email.split('@')[0],
-        gmailUser: process.env.GMAIL_USER || '',
-        gmailAppPassword: process.env.GMAIL_APP_PASSWORD || '',
-        gmailConnected: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD),
-        ntfyTopic: process.env.NTFY_TOPIC || 'life-ai'
-      });
-      console.log(`[Auth] Created default user: ${email}`);
+      try {
+        user = await User.create({
+          email,
+          displayName: email.split('@')[0],
+          gmailUser: process.env.GMAIL_USER || '',
+          gmailAppPassword: process.env.GMAIL_APP_PASSWORD || '',
+          gmailConnected: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD),
+          ntfyTopic: process.env.NTFY_TOPIC || 'life-ai'
+        });
+        console.log(`[Auth] Created default user: ${email}`);
+      } catch (createErr) {
+        // Handle duplicate key from concurrent requests — just find the existing one
+        if (createErr.code === 11000) {
+          user = await User.findOne({ email });
+        } else {
+          throw createErr;
+        }
+      }
     }
     req.user = user;
     next();
