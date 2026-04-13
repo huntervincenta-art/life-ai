@@ -1,9 +1,11 @@
 import cron from 'node-cron';
 import User from '../models/User.js';
 import BillTransaction from '../models/BillTransaction.js';
+import Vendor from '../models/Vendor.js';
 import { scanEmails } from '../services/emailScanner.js';
 import { extractBill } from '../services/billExtractor.js';
 import { recognizePattern } from '../services/patternRecognizer.js';
+import { sendPushToUser } from '../services/pushService.js';
 
 async function runScanForUser(user) {
   const emails = await scanEmails(user);
@@ -32,6 +34,40 @@ async function runScanForUser(user) {
       });
 
       newBills++;
+
+      // Store any extracted URLs on the vendor
+      const urlFields = {};
+      if (extracted.websiteUrl) urlFields.websiteUrl = extracted.websiteUrl;
+      if (extracted.manageUrl) urlFields.manageUrl = extracted.manageUrl;
+      if (extracted.cancelUrl) urlFields.cancelUrl = extracted.cancelUrl;
+      if (extracted.loginUrl) urlFields.loginUrl = extracted.loginUrl;
+
+      // Check if this vendor was previously cancelled — alert if so
+      const normalizedName = bill.vendor.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const existingVendor = await Vendor.findOne({ normalizedName, userId: user._id });
+      if (existingVendor && !existingVendor.isActive) {
+        // Vendor was cancelled but a new charge appeared — send push alert
+        await sendPushToUser(user._id, {
+          title: 'Cancelled bill alert',
+          body: `Heads up — ${bill.vendor} charged you $${bill.amount.toFixed(2)} even though you marked it cancelled. Might need to follow up.`,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          url: '/',
+          tag: `cancelled-charge-${normalizedName}`
+        });
+      }
+
+      // Update vendor with extracted URLs (merge, don't overwrite existing)
+      if (Object.keys(urlFields).length > 0 && existingVendor) {
+        const urlUpdate = {};
+        for (const [k, v] of Object.entries(urlFields)) {
+          if (!existingVendor[k]) urlUpdate[k] = v;
+        }
+        if (Object.keys(urlUpdate).length > 0) {
+          await Vendor.findByIdAndUpdate(existingVendor._id, urlUpdate);
+        }
+      }
+
       await recognizePattern(bill.vendor, user._id, bill.category);
     } catch (err) {
       // Duplicate (compound index) — skip silently

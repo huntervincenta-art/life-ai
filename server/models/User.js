@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   gmailConnected: { type: Boolean, default: false },
   gmailUser: { type: String, default: '' },
   gmailAppPassword: { type: String, default: '' },
-  ntfyTopic: { type: String, default: 'life-ai' },
+  pushEnabled: { type: Boolean, default: true },
   lastScanAt: { type: Date, default: null },
   scanEnabled: { type: Boolean, default: true },
   alertDaysBefore: { type: Number, default: 3 },

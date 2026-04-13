@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, MessageCircle, Bell, Check, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
-import { getSettings, updateSettings, saveGmailCredentials, triggerScan, getVendors, updateVendor } from '../lib/api';
+import { getSettings, updateSettings, saveGmailCredentials, triggerScan, getVendors, updateVendor, getActiveChat, testPush } from '../lib/api';
+import { checkPushPermission, requestPushPermission, registerServiceWorker, subscribeToPush } from '../services/pushManager';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const [settings, setSettings] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [gmailForm, setGmailForm] = useState({ gmailUser: '', gmailAppPassword: '' });
@@ -12,14 +15,29 @@ export default function SettingsPage() {
   const [savingGmail, setSavingGmail] = useState(false);
   const [gmailMsg, setGmailMsg] = useState('');
   const [loading, setLoading] = useState(true);
+  const [expandedCancel, setExpandedCancel] = useState(null);
+  const [hasActiveChat, setHasActiveChat] = useState(false);
+  const [pushStatus, setPushStatus] = useState('loading');
+  const [testResult, setTestResult] = useState(null);
+  const [enablingPush, setEnablingPush] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [s, v] = await Promise.all([getSettings(), getVendors()]);
+        const [s, v, activeChat] = await Promise.all([getSettings(), getVendors(), getActiveChat()]);
         setSettings(s);
         setVendors(v);
         setGmailForm({ gmailUser: s.gmailUser || '', gmailAppPassword: '' });
+        setHasActiveChat(!!activeChat);
+
+        const perm = await checkPushPermission();
+        setPushStatus(perm);
+
+        setIsInstalled(
+          window.matchMedia('(display-mode: standalone)').matches
+          || window.navigator.standalone === true
+        );
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {
@@ -34,7 +52,6 @@ export default function SettingsPage() {
     try {
       const result = await triggerScan();
       setScanResult(result);
-      // Refresh settings to get updated lastScanAt
       const s = await getSettings();
       setSettings(s);
     } catch (err) {
@@ -78,6 +95,34 @@ export default function SettingsPage() {
     }
   };
 
+  const handleEnablePush = async () => {
+    setEnablingPush(true);
+    try {
+      const permission = await requestPushPermission();
+      if (permission === 'granted') {
+        const reg = await registerServiceWorker();
+        if (reg) await subscribeToPush(reg);
+        setPushStatus('granted');
+      } else {
+        setPushStatus(permission);
+      }
+    } catch (err) {
+      console.error('Push enable failed:', err);
+    } finally {
+      setEnablingPush(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    setTestResult(null);
+    try {
+      const result = await testPush();
+      setTestResult(`Sent to ${result.sent} device${result.sent !== 1 ? 's' : ''}`);
+    } catch (err) {
+      setTestResult('Failed to send');
+    }
+  };
+
   if (loading) {
     return <div className="page text-center" style={{ paddingTop: 60 }}><span className="spinner" /></div>;
   }
@@ -86,6 +131,114 @@ export default function SettingsPage() {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
+      </div>
+
+      {/* App */}
+      <div className="settings-section">
+        <div className="settings-section-title">App</div>
+        <div className="settings-row">
+          <span className="settings-label">Installation</span>
+          <span className="settings-value">
+            {isInstalled ? (
+              <><span className="status-dot connected" /> Life AI is installed</>
+            ) : (
+              <span style={{ color: 'var(--text-muted)' }}>Not installed</span>
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* Setup */}
+      <div className="settings-section">
+        <div className="settings-section-title">Setup</div>
+        <div className="settings-row">
+          <span className="settings-label">Map out your bills with AI chat</span>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => navigate('/chat')}
+            style={{ gap: 4 }}
+          >
+            <MessageCircle size={12} /> {hasActiveChat ? 'Continue Chat' : 'Start Chat'}
+          </button>
+        </div>
+      </div>
+
+      {/* Notifications */}
+      <div className="settings-section">
+        <div className="settings-section-title">Notifications</div>
+
+        <div className="settings-row">
+          <span className="settings-label">Push notifications</span>
+          <span className="settings-value">
+            {pushStatus === 'granted' ? (
+              <><span className="status-dot connected" /> Enabled</>
+            ) : pushStatus === 'denied' ? (
+              <><span className="status-dot disconnected" /> Blocked</>
+            ) : pushStatus === 'unsupported' ? (
+              <span style={{ color: 'var(--text-muted)' }}>Not supported</span>
+            ) : (
+              <span style={{ color: 'var(--text-muted)' }}>Not set up</span>
+            )}
+          </span>
+        </div>
+
+        {pushStatus === 'default' && (
+          <div style={{ marginTop: 8 }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleEnablePush}
+              disabled={enablingPush}
+              style={{ gap: 4 }}
+            >
+              {enablingPush ? <span className="spinner" /> : <Bell size={12} />}
+              Enable Push Notifications
+            </button>
+          </div>
+        )}
+
+        {pushStatus === 'denied' && (
+          <div className="muted" style={{ marginTop: 6 }}>
+            Notifications are blocked. Enable them in your browser/device settings for this site.
+          </div>
+        )}
+
+        {pushStatus === 'granted' && (
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-sm" onClick={handleTestPush} style={{ gap: 4 }}>
+              <Bell size={12} /> Send Test
+            </button>
+            {testResult && <span className="muted">{testResult}</span>}
+          </div>
+        )}
+
+        <div className="settings-row" style={{ marginTop: 8 }}>
+          <span className="settings-label">Alert days before bill</span>
+          <input
+            className="form-input"
+            type="number"
+            min="1"
+            max="14"
+            value={settings.alertDaysBefore}
+            onChange={e => handleUpdateSetting('alertDaysBefore', parseInt(e.target.value))}
+            style={{ width: 60, textAlign: 'center' }}
+          />
+        </div>
+
+        <div className="settings-row">
+          <span className="settings-label">Bill alerts</span>
+          <button
+            className={`toggle ${settings.pushEnabled ? 'active' : ''}`}
+            onClick={() => handleUpdateSetting('pushEnabled', !settings.pushEnabled)}
+          />
+        </div>
+
+        <div className="settings-row">
+          <span className="settings-label">Auto-scanning</span>
+          <button
+            className={`toggle ${settings.scanEnabled ? 'active' : ''}`}
+            onClick={() => handleUpdateSetting('scanEnabled', !settings.scanEnabled)}
+          />
+        </div>
       </div>
 
       {/* Gmail Connection */}
@@ -169,55 +322,40 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Alert Preferences */}
-      <div className="settings-section">
-        <div className="settings-section-title">Alert Preferences</div>
-
-        <div className="settings-row">
-          <span className="settings-label">Alert days before bill</span>
-          <input
-            className="form-input"
-            type="number"
-            min="1"
-            max="14"
-            value={settings.alertDaysBefore}
-            onChange={e => handleUpdateSetting('alertDaysBefore', parseInt(e.target.value))}
-            style={{ width: 60, textAlign: 'center' }}
-          />
-        </div>
-
-        <div className="settings-row">
-          <span className="settings-label">ntfy Topic</span>
-          <input
-            className="form-input"
-            type="text"
-            value={settings.ntfyTopic}
-            onChange={e => handleUpdateSetting('ntfyTopic', e.target.value)}
-            style={{ width: 140, textAlign: 'right' }}
-          />
-        </div>
-
-        <div className="settings-row">
-          <span className="settings-label">Auto-scanning</span>
-          <button
-            className={`toggle ${settings.scanEnabled ? 'active' : ''}`}
-            onClick={() => handleUpdateSetting('scanEnabled', !settings.scanEnabled)}
-          />
-        </div>
-      </div>
-
       {/* Vendors */}
       {vendors.length > 0 && (
         <div className="settings-section">
           <div className="settings-section-title">Detected Vendors ({vendors.length})</div>
 
           {vendors.map(v => (
-            <div key={v._id} className="vendor-item">
+            <div key={v._id} className={`vendor-item ${!v.isActive ? 'vendor-cancelled' : ''}`}>
               <div className="vendor-info">
-                <div className="vendor-name">{v.name}</div>
+                <div className="vendor-name">
+                  {v.name}
+                  {!v.isActive && <span className="badge-cancelled">Cancelled</span>}
+                </div>
                 <div className="vendor-detail">
                   {v.category} &middot; {v.billingCycleDays}d cycle &middot; ${v.lastAmount?.toFixed(2) || '—'}
+                  {v.cancelDifficulty && (
+                    <span className={`difficulty-badge difficulty-${v.cancelDifficulty}`} style={{ marginLeft: 6 }}>
+                      {v.cancelDifficulty}
+                    </span>
+                  )}
                 </div>
+                {v.cancelMethod && (
+                  <button
+                    className="vendor-cancel-link"
+                    onClick={(e) => { e.stopPropagation(); setExpandedCancel(expandedCancel === v._id ? null : v._id); }}
+                  >
+                    {expandedCancel === v._id ? 'hide cancel info' : 'cancel info'}
+                  </button>
+                )}
+                {expandedCancel === v._id && v.cancelMethod && (
+                  <div className="cancel-inline" style={{ marginTop: 4 }}>
+                    <div className="cancel-method">{v.cancelMethod}</div>
+                    {v.cancelTip && <div className="cancel-tip">{v.cancelTip}</div>}
+                  </div>
+                )}
               </div>
               <button
                 className={`toggle ${v.isActive ? 'active' : ''}`}

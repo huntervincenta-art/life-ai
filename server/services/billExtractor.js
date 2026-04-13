@@ -12,7 +12,11 @@ Return a JSON object with these fields:
   "category": one of ["utilities", "subscriptions", "insurance", "rent", "phone", "internet", "groceries", "medical", "loan", "credit_card", "other"],
   "paymentMethod": "last 4 digits of card/account" or null,
   "isRecurring": true or false (true if it mentions recurring/monthly/subscription/autopay),
-  "confidence": number 0-1 representing how confident you are this is a real bill/payment
+  "confidence": number 0-1 representing how confident you are this is a real bill/payment,
+  "websiteUrl": "main website URL if found in email" or null,
+  "manageUrl": "direct link to manage account/subscription if found in email footer" or null,
+  "cancelUrl": "direct link to cancel if found" or null,
+  "loginUrl": "link to login/sign in if found" or null
 }
 
 Rules:
@@ -22,7 +26,12 @@ Rules:
 - "Your order has shipped" or "delivery update" is NOT a bill
 - Only extract if there's a clear payment, charge, bill, or subscription event
 - For vendor name, use the clean human-readable brand name
-- If amount is mentioned multiple times, use the total/final amount`;
+- If amount is mentioned multiple times, use the total/final amount
+- Look carefully at the email body for URLs. Bill emails almost always contain links to "Manage your account", "View your bill", "Update payment", "Cancel subscription", "Sign in", or similar. Extract the most useful ones.
+- For manageUrl, prioritize links labeled "manage", "account settings", "subscription", "billing"
+- For cancelUrl, look for links labeled "cancel", "unsubscribe from service", "end subscription"
+- For loginUrl, look for "sign in", "log in", "view account"
+- The websiteUrl is just the base domain of the sender`;
 
 export async function extractBill(email) {
   try {
@@ -51,7 +60,11 @@ export async function extractBill(email) {
       category: parsed.category || 'other',
       paymentMethod: parsed.paymentMethod || '',
       isRecurring: parsed.isRecurring || false,
-      confidence: parsed.confidence
+      confidence: parsed.confidence,
+      websiteUrl: parsed.websiteUrl || '',
+      manageUrl: parsed.manageUrl || '',
+      cancelUrl: parsed.cancelUrl || '',
+      loginUrl: parsed.loginUrl || '',
     };
   } catch (err) {
     console.error('[BillExtractor] Error:', err.message);

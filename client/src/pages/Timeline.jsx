@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Sparkles, Settings } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Settings, ExternalLink, X, Search, RefreshCw, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
-import { getTimeline, getSummary, updateVendor } from '../lib/api';
+import { getTimeline, getSummary, updateVendor, lookupVendorActions, getActiveChat } from '../lib/api';
 import EditPanel from '../components/EditPanel';
+import InstallBanner from '../components/InstallBanner';
 
 const CATEGORY_OPTIONS = [
   { value: 'utilities', label: 'Utilities' },
@@ -43,17 +44,154 @@ function getConfidenceClass(confidence) {
   return 'confidence-low';
 }
 
+function DifficultyBadge({ difficulty }) {
+  if (!difficulty) return null;
+  return <span className={`difficulty-badge difficulty-${difficulty}`}>{difficulty}</span>;
+}
+
+function ActionButtons({ vendor, onLookup, lookingUp }) {
+  const hasManageUrl = vendor.manageUrl || vendor.loginUrl;
+  const hasCancelUrl = vendor.cancelUrl;
+  const hasCancelMethod = vendor.cancelMethod;
+  const hasAnyInfo = hasManageUrl || hasCancelUrl || hasCancelMethod;
+  const [showCancel, setShowCancel] = useState(false);
+
+  if (!hasAnyInfo) {
+    return (
+      <div className="bill-actions">
+        <button
+          className="action-btn action-btn-lookup"
+          onClick={(e) => { e.stopPropagation(); onLookup(); }}
+          disabled={lookingUp}
+        >
+          {lookingUp ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Search size={10} />}
+          {lookingUp ? 'Looking up...' : 'Find cancel info'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bill-actions" onClick={e => e.stopPropagation()}>
+      {hasManageUrl && (
+        <a
+          href={vendor.manageUrl || vendor.loginUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="action-btn"
+        >
+          <ExternalLink size={10} /> Pay / Manage
+        </a>
+      )}
+      {hasCancelUrl && (
+        <a
+          href={vendor.cancelUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="action-btn action-btn-cancel"
+        >
+          <X size={10} /> Cancel
+        </a>
+      )}
+      {hasCancelMethod && (
+        <>
+          <button
+            className="cancel-expand-btn"
+            onClick={() => setShowCancel(!showCancel)}
+          >
+            How to cancel {showCancel ? <ChevronUp size={10} style={{ verticalAlign: 'middle' }} /> : <ChevronDown size={10} style={{ verticalAlign: 'middle' }} />}
+          </button>
+          <DifficultyBadge difficulty={vendor.cancelDifficulty} />
+        </>
+      )}
+      {showCancel && hasCancelMethod && (
+        <div className="cancel-inline" style={{ width: '100%' }}>
+          <div className="cancel-method">{vendor.cancelMethod}</div>
+          {vendor.cancelTip && <div className="cancel-tip">{vendor.cancelTip}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CancelSection({ vendor, onRefresh, refreshing, onMarkCancelled }) {
+  const [cancelled, setCancelled] = useState(false);
+
+  return (
+    <div className="cancel-section">
+      <div className="cancel-section-title">Cancel this subscription</div>
+
+      {vendor.cancelMethod ? (
+        <>
+          <div className="cancel-method">{vendor.cancelMethod}</div>
+          <DifficultyBadge difficulty={vendor.cancelDifficulty} />
+          {vendor.cancelTip && (
+            <div className="cancel-tip" style={{ marginTop: 8 }}>{vendor.cancelTip}</div>
+          )}
+        </>
+      ) : (
+        <div className="muted" style={{ marginBottom: 8 }}>No cancel info yet.</div>
+      )}
+
+      <div className="cancel-links">
+        {vendor.cancelUrl && (
+          <a href={vendor.cancelUrl} target="_blank" rel="noopener noreferrer" className="action-btn action-btn-cancel">
+            <X size={10} /> Cancel Page
+          </a>
+        )}
+        {vendor.manageUrl && (
+          <a href={vendor.manageUrl} target="_blank" rel="noopener noreferrer" className="action-btn">
+            <ExternalLink size={10} /> Manage Account
+          </a>
+        )}
+        {vendor.loginUrl && (
+          <a href={vendor.loginUrl} target="_blank" rel="noopener noreferrer" className="action-btn">
+            <ExternalLink size={10} /> Log In
+          </a>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button
+          className="action-btn action-btn-lookup"
+          onClick={onRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <RefreshCw size={10} />}
+          Refresh cancel info
+        </button>
+        {!cancelled ? (
+          <button
+            className="btn btn-danger"
+            style={{ fontSize: 11, padding: '4px 10px' }}
+            onClick={() => { onMarkCancelled(); setCancelled(true); }}
+          >
+            Mark as Cancelled
+          </button>
+        ) : (
+          <span className="cancel-confirm-msg">Marked as cancelled. We'll let you know if we detect another charge.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Timeline({ refreshKey }) {
+  const navigate = useNavigate();
   const [vendors, setVendors] = useState([]);
   const [summary, setSummary] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [lookingUp, setLookingUp] = useState({});
+  const [refreshingCancel, setRefreshingCancel] = useState({});
+  const [hasActiveChat, setHasActiveChat] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [v, s] = await Promise.all([getTimeline(), getSummary()]);
+      const [v, s, activeChat] = await Promise.all([getTimeline(), getSummary(), getActiveChat()]);
       setVendors(v);
       setSummary(s);
+      setHasActiveChat(!!activeChat);
     } catch (err) {
       console.error('Failed to load timeline:', err);
     } finally {
@@ -73,6 +211,44 @@ export default function Timeline({ refreshKey }) {
     }
   };
 
+  const handleLookup = async (vendorId) => {
+    setLookingUp(prev => ({ ...prev, [vendorId]: true }));
+    try {
+      const updated = await lookupVendorActions(vendorId);
+      setVendors(prev => prev.map(v => v._id === vendorId ? updated : v));
+    } catch (err) {
+      console.error('Lookup failed:', err);
+    } finally {
+      setLookingUp(prev => ({ ...prev, [vendorId]: false }));
+    }
+  };
+
+  const handleRefreshCancel = async (vendorId) => {
+    setRefreshingCancel(prev => ({ ...prev, [vendorId]: true }));
+    try {
+      const updated = await lookupVendorActions(vendorId);
+      setVendors(prev => prev.map(v => v._id === vendorId ? updated : v));
+    } catch (err) {
+      console.error('Refresh cancel failed:', err);
+    } finally {
+      setRefreshingCancel(prev => ({ ...prev, [vendorId]: false }));
+    }
+  };
+
+  const handleMarkCancelled = async (vendorId) => {
+    try {
+      await updateVendor(vendorId, { isActive: false });
+      // Remove from list after brief delay so user sees the confirmation
+      setTimeout(() => {
+        setVendors(prev => prev.filter(v => v._id !== vendorId));
+        setExpandedId(null);
+        load();
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to mark cancelled:', err);
+    }
+  };
+
   if (loading) {
     return <div className="page text-center" style={{ paddingTop: 60 }}><span className="spinner" /></div>;
   }
@@ -82,6 +258,8 @@ export default function Timeline({ refreshKey }) {
       <div className="page-header">
         <h1 className="page-title">Bills</h1>
       </div>
+
+      <InstallBanner />
 
       {summary && (
         <div className="summary-card">
@@ -103,6 +281,17 @@ export default function Timeline({ refreshKey }) {
               <div className="summary-label">Spent this month</div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Chat CTA */}
+      {vendors.length < 5 && (
+        <div className={`chat-cta ${vendors.length > 0 ? 'chat-cta-small' : ''}`}>
+          <h3>{hasActiveChat ? 'Continue mapping your bills' : vendors.length === 0 ? 'Map out your bills in 20 minutes' : 'Want to add more bills? Chat again'}</h3>
+          <p>{vendors.length === 0 ? "Have a quick chat and we'll build your bill timeline together" : 'Pick up where you left off or start a new round'}</p>
+          <button className="btn btn-primary" onClick={() => navigate('/chat')} style={{ gap: 6 }}>
+            <MessageCircle size={16} /> {hasActiveChat ? 'Continue Chat' : 'Start Chat'}
+          </button>
         </div>
       )}
 
@@ -143,32 +332,47 @@ export default function Timeline({ refreshKey }) {
                   <div className="bill-amount">${amount.toFixed(2)}</div>
                 </div>
 
+                <ActionButtons
+                  vendor={v}
+                  onLookup={() => handleLookup(v._id)}
+                  lookingUp={!!lookingUp[v._id]}
+                />
+
                 {isExpanded && (
-                  <EditPanel
-                    fields={[
-                      { key: 'nextExpectedDate', label: 'Next Expected Date', type: 'date' },
-                      { key: 'lastAmount', label: 'Expected Amount', type: 'number' },
-                      { key: 'category', label: 'Category', type: 'select', options: CATEGORY_OPTIONS },
-                      { key: 'billingCycleDays', label: 'Billing Cycle (days)', type: 'number' },
-                      { key: 'isActive', label: 'Active', type: 'toggle' },
-                    ]}
-                    values={{
-                      nextExpectedDate: v.nextExpectedDate ? format(new Date(v.nextExpectedDate), 'yyyy-MM-dd') : '',
-                      lastAmount: amount,
-                      category: v.category,
-                      billingCycleDays: v.billingCycleDays,
-                      isActive: v.isActive,
-                    }}
-                    onSave={(data) => {
-                      const update = {};
-                      if (data.nextExpectedDate) update.nextExpectedDate = data.nextExpectedDate;
-                      if (data.category) update.category = data.category;
-                      if (data.billingCycleDays) update.billingCycleDays = parseInt(data.billingCycleDays);
-                      if (data.isActive !== undefined) update.isActive = data.isActive;
-                      handleSaveVendor(v._id, update);
-                    }}
-                    onCancel={() => setExpandedId(null)}
-                  />
+                  <>
+                    <EditPanel
+                      fields={[
+                        { key: 'nextExpectedDate', label: 'Next Expected Date', type: 'date' },
+                        { key: 'lastAmount', label: 'Expected Amount', type: 'number' },
+                        { key: 'category', label: 'Category', type: 'select', options: CATEGORY_OPTIONS },
+                        { key: 'billingCycleDays', label: 'Billing Cycle (days)', type: 'number' },
+                        { key: 'isActive', label: 'Active', type: 'toggle' },
+                      ]}
+                      values={{
+                        nextExpectedDate: v.nextExpectedDate ? format(new Date(v.nextExpectedDate), 'yyyy-MM-dd') : '',
+                        lastAmount: amount,
+                        category: v.category,
+                        billingCycleDays: v.billingCycleDays,
+                        isActive: v.isActive,
+                      }}
+                      onSave={(data) => {
+                        const update = {};
+                        if (data.nextExpectedDate) update.nextExpectedDate = data.nextExpectedDate;
+                        if (data.category) update.category = data.category;
+                        if (data.billingCycleDays) update.billingCycleDays = parseInt(data.billingCycleDays);
+                        if (data.isActive !== undefined) update.isActive = data.isActive;
+                        handleSaveVendor(v._id, update);
+                      }}
+                      onCancel={() => setExpandedId(null)}
+                    />
+
+                    <CancelSection
+                      vendor={v}
+                      onRefresh={() => handleRefreshCancel(v._id)}
+                      refreshing={!!refreshingCancel[v._id]}
+                      onMarkCancelled={() => handleMarkCancelled(v._id)}
+                    />
+                  </>
                 )}
               </div>
             </div>

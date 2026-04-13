@@ -3,6 +3,7 @@ import BillTransaction from '../models/BillTransaction.js';
 import Vendor from '../models/Vendor.js';
 import { recognizePattern } from '../services/patternRecognizer.js';
 import { runScanForUser } from '../jobs/emailScanJob.js';
+import { lookupCancelInfo } from '../services/cancelHelper.js';
 
 const router = Router();
 
@@ -168,6 +169,38 @@ router.patch('/vendor/:id', async (req, res) => {
     res.json(vendor);
   } catch (err) {
     console.error('[Bills] vendor update error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/bills/vendor/:id/lookup-actions — force refresh cancel/manage info
+router.post('/vendor/:id/lookup-actions', async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!vendor) return res.status(404).json({ error: 'Not found' });
+
+    const knownUrls = {
+      websiteUrl: vendor.websiteUrl || '',
+      manageUrl: vendor.manageUrl || '',
+      cancelUrl: vendor.cancelUrl || '',
+      loginUrl: vendor.loginUrl || '',
+    };
+
+    const cancelInfo = await lookupCancelInfo(vendor.name, knownUrls);
+    if (!cancelInfo) return res.status(500).json({ error: 'Failed to look up cancel info' });
+
+    const update = {};
+    if (cancelInfo.cancelMethod) update.cancelMethod = cancelInfo.cancelMethod;
+    if (cancelInfo.cancelDifficulty) update.cancelDifficulty = cancelInfo.cancelDifficulty;
+    if (cancelInfo.cancelTip) update.cancelTip = cancelInfo.cancelTip;
+    if (cancelInfo.cancelUrl) update.cancelUrl = cancelInfo.cancelUrl;
+    if (cancelInfo.manageUrl) update.manageUrl = cancelInfo.manageUrl;
+    if (cancelInfo.loginUrl) update.loginUrl = cancelInfo.loginUrl;
+
+    const updated = await Vendor.findByIdAndUpdate(vendor._id, update, { new: true });
+    res.json(updated);
+  } catch (err) {
+    console.error('[Bills] lookup-actions error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

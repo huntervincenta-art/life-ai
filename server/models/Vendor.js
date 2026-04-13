@@ -17,6 +17,13 @@ const vendorSchema = new mongoose.Schema({
   confidence: { type: Number, default: 0, min: 0, max: 1 },
   transactionCount: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
+  websiteUrl: { type: String, default: '' },
+  manageUrl: { type: String, default: '' },
+  cancelUrl: { type: String, default: '' },
+  loginUrl: { type: String, default: '' },
+  cancelMethod: { type: String, default: '' },
+  cancelDifficulty: { type: String, enum: ['easy', 'medium', 'hard', ''], default: '' },
+  cancelTip: { type: String, default: '' },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });

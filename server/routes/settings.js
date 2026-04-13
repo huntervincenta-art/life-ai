@@ -11,7 +11,6 @@ router.post('/gmail', async (req, res) => {
       return res.status(400).json({ error: 'gmailUser and gmailAppPassword required' });
     }
 
-    // Test the connection first
     const result = await testConnection(gmailUser, gmailAppPassword);
 
     if (result.success) {
@@ -35,7 +34,7 @@ router.get('/', async (req, res) => {
     res.json({
       scanEnabled: req.user.scanEnabled,
       alertDaysBefore: req.user.alertDaysBefore,
-      ntfyTopic: req.user.ntfyTopic,
+      pushEnabled: req.user.pushEnabled,
       gmailConnected: req.user.gmailConnected || !!(req.user.gmailUser || process.env.GMAIL_USER),
       gmailUser: req.user.gmailUser || process.env.GMAIL_USER || '',
       lastScanAt: req.user.lastScanAt
@@ -49,7 +48,7 @@ router.get('/', async (req, res) => {
 // PATCH /api/settings
 router.patch('/', async (req, res) => {
   try {
-    const allowed = ['scanEnabled', 'alertDaysBefore', 'ntfyTopic'];
+    const allowed = ['scanEnabled', 'alertDaysBefore', 'pushEnabled'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) req.user[key] = req.body[key];
     }

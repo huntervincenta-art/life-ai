@@ -9,6 +9,8 @@ import { fileURLToPath } from 'url';
 import User from './models/User.js';
 import billRoutes from './routes/bills.js';
 import settingsRoutes from './routes/settings.js';
+import chatRoutes from './routes/chat.js';
+import pushRoutes from './routes/push.js';
 import { startEmailScanJob } from './jobs/emailScanJob.js';
 import { startBillAlertJob } from './jobs/billAlertJob.js';
 
@@ -34,8 +36,7 @@ app.use('/api', async (req, res, next) => {
           displayName: email.split('@')[0],
           gmailUser: process.env.GMAIL_USER || '',
           gmailAppPassword: process.env.GMAIL_APP_PASSWORD || '',
-          gmailConnected: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD),
-          ntfyTopic: process.env.NTFY_TOPIC || 'life-ai'
+          gmailConnected: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
         });
         console.log(`[Auth] Created default user: ${email}`);
       } catch (createErr) {
@@ -58,6 +59,8 @@ app.use('/api', async (req, res, next) => {
 // API Routes
 app.use('/api/bills', billRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/push', pushRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

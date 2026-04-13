@@ -687,6 +687,526 @@ button { cursor: pointer; font-family: inherit; }
   justify-content: center;
 }
 
+/* ─── Action Buttons Row ──────────────────────────────── */
+.bill-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.action-btn:hover { color: var(--text-primary); background: var(--bg-card-hover); border-color: var(--text-muted); }
+
+.action-btn-cancel {
+  border-color: rgba(226, 75, 74, 0.3);
+  color: #d4908a;
+}
+.action-btn-cancel:hover { background: var(--accent-danger-light); color: var(--accent-danger); border-color: var(--accent-danger); }
+
+.action-btn-lookup {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+.action-btn-lookup:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+/* ─── Difficulty Badge ────────────────────────────────── */
+.difficulty-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.difficulty-easy { background: var(--accent-success-light); color: var(--accent-success); }
+.difficulty-medium { background: var(--accent-warning-light); color: var(--accent-warning); }
+.difficulty-hard { background: var(--accent-danger-light); color: var(--accent-danger); }
+
+/* ─── Cancel Info Section ─────────────────────────────── */
+.cancel-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.cancel-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cancel-method {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.cancel-tip {
+  background: var(--accent-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--accent-primary);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.cancel-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.cancel-confirm-msg {
+  font-size: 12px;
+  color: var(--accent-success);
+  margin-top: 6px;
+}
+
+/* ─── How-to-cancel inline expand ─────────────────────── */
+.cancel-expand-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.cancel-expand-btn:hover { color: var(--accent-primary); }
+
+.cancel-inline {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+/* ─── Vendor cancelled state (Settings) ───────────────── */
+.vendor-cancelled .vendor-name {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.badge-cancelled {
+  background: var(--accent-danger-light);
+  color: var(--accent-danger);
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.vendor-cancel-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.vendor-cancel-link:hover { color: var(--accent-danger); }
+
+/* ─── Chat Page (full screen) ─────────────────────────── */
+.chat-page {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  z-index: 500;
+}
+
+.chat-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chat-topbar-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chat-timer {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 48px;
+  text-align: center;
+}
+
+.chat-timer.timer-warning { color: var(--accent-warning); }
+.chat-timer.timer-danger { color: var(--accent-danger); }
+
+.chat-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 4px;
+  cursor: pointer;
+}
+.chat-close:hover { color: var(--text-primary); }
+
+.chat-timer-banner {
+  background: var(--accent-warning-light);
+  color: var(--accent-warning);
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ─── Chat Messages ───────────────────────────────────── */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-bubble {
+  display: flex;
+  gap: 8px;
+  max-width: 85%;
+  animation: chatFadeIn 0.2s ease-out;
+}
+
+@keyframes chatFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-ai { align-self: flex-start; }
+.chat-user { align-self: flex-end; flex-direction: row-reverse; }
+
+.chat-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-secondary-light);
+  color: var(--accent-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chat-bubble-content {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-ai .chat-bubble-content {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-user .chat-bubble-content {
+  background: rgba(108, 140, 255, 0.18);
+  color: var(--text-primary);
+  border-bottom-right-radius: 4px;
+}
+
+/* ─── Bill Confirm Card ───────────────────────────────── */
+.chat-bill-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-success-light);
+  color: var(--accent-success);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 4px 0 4px 34px;
+  max-width: 85%;
+  animation: chatFadeIn 0.3s ease-out;
+}
+
+/* ─── Typing Indicator ────────────────────────────────── */
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typingBounce 1.2s infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ─── Chat Input ──────────────────────────────────────── */
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  color: var(--text-primary);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.chat-input:focus { border-color: var(--accent-primary); }
+.chat-input::placeholder { color: var(--text-muted); }
+
+.chat-send {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.chat-send:hover:not(:disabled) { background: var(--accent-primary-hover); }
+.chat-send:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ─── Chat Loading & Summary ──────────────────────────── */
+.chat-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-summary {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.chat-summary-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-success-light);
+  color: var(--accent-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.chat-summary h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.chat-summary-stat {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.chat-summary-stat strong {
+  color: var(--text-primary);
+}
+
+/* ─── Chat CTA Card (Timeline) ────────────────────────── */
+.chat-cta {
+  background: linear-gradient(135deg, rgba(108, 140, 255, 0.08), rgba(167, 139, 250, 0.08));
+  border: 1px solid rgba(108, 140, 255, 0.2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.chat-cta h3 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.chat-cta p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.chat-cta-small {
+  padding: 14px;
+}
+
+.chat-cta-small h3 { font-size: 14px; margin-bottom: 2px; }
+.chat-cta-small p { margin-bottom: 8px; font-size: 12px; }
+
+/* ─── Install Banner ──────────────────────────────────── */
+.install-banner {
+  background: linear-gradient(135deg, rgba(108, 140, 255, 0.1), rgba(167, 139, 250, 0.1));
+  border: 1px solid rgba(108, 140, 255, 0.2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.install-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.install-banner-icon { color: var(--accent-primary); flex-shrink: 0; }
+
+.install-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.install-banner-text strong {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.install-banner-text span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.install-banner-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.install-banner-close:hover { color: var(--text-primary); }
+
+.install-ios-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  flex: 1;
+}
+
+/* ─── Push Prompt Modal ───────────────────────────────── */
+.push-prompt {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+  margin: auto;
+}
+
+.push-prompt-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.push-prompt h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.push-prompt p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.push-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ─── Safe area for PWA ───────────────────────────────── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .chat-topbar { padding-top: calc(12px + env(safe-area-inset-top)); }
+  .chat-input-area { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .bottom-nav { padding-bottom: env(safe-area-inset-bottom); height: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  .main-content { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+}
+
 /* ─── Desktop Adjustments ─────────────────────────────── */
 @media (min-width: 768px) {
   .main-content { padding-bottom: 80px; }

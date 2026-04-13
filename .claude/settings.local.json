@@ -15,7 +15,9 @@
       "Bash(node --check routes/lifeLog.js)",
       "Bash(node --check routes/routines.js)",
       "Bash(node --check services/kidsConfig.js)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(node -e ':*)",
+      "Bash(node -e \"try { require\\('sharp'\\); console.log\\('sharp'\\); } catch { console.log\\('no sharp'\\); }\")"
     ]
   }
 }

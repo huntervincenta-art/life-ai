@@ -1,5 +1,6 @@
 import BillTransaction from '../models/BillTransaction.js';
 import Vendor from '../models/Vendor.js';
+import { lookupCancelInfo } from './cancelHelper.js';
 
 function normalizeVendorName(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -81,9 +82,37 @@ export async function recognizePattern(vendorName, userId, category) {
     vendorData.confidence = 0.2;
   }
 
-  await Vendor.findOneAndUpdate(
+  const vendor = await Vendor.findOneAndUpdate(
     { normalizedName, userId },
     vendorData,
     { upsert: true, new: true }
   );
+
+  // Look up cancel/manage info once per vendor (only if not already populated)
+  if (!vendor.cancelMethod) {
+    try {
+      const knownUrls = {
+        websiteUrl: vendor.websiteUrl || '',
+        manageUrl: vendor.manageUrl || '',
+        cancelUrl: vendor.cancelUrl || '',
+        loginUrl: vendor.loginUrl || '',
+      };
+      const cancelInfo = await lookupCancelInfo(vendor.name, knownUrls);
+      if (cancelInfo) {
+        const update = {};
+        if (cancelInfo.cancelMethod) update.cancelMethod = cancelInfo.cancelMethod;
+        if (cancelInfo.cancelDifficulty) update.cancelDifficulty = cancelInfo.cancelDifficulty;
+        if (cancelInfo.cancelTip) update.cancelTip = cancelInfo.cancelTip;
+        // Only fill in URLs that aren't already set
+        if (cancelInfo.cancelUrl && !vendor.cancelUrl) update.cancelUrl = cancelInfo.cancelUrl;
+        if (cancelInfo.manageUrl && !vendor.manageUrl) update.manageUrl = cancelInfo.manageUrl;
+        if (cancelInfo.loginUrl && !vendor.loginUrl) update.loginUrl = cancelInfo.loginUrl;
+        if (Object.keys(update).length > 0) {
+          await Vendor.findByIdAndUpdate(vendor._id, update);
+        }
+      }
+    } catch (err) {
+      console.error('[PatternRecognizer] Cancel lookup error:', err.message);
+    }
+  }
 }
