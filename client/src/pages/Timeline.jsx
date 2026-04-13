@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings, ExternalLink, X, Search, RefreshCw, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Settings, ExternalLink, X, Search, RefreshCw, ChevronDown, ChevronUp, MessageCircle, CreditCard, Phone } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
-import { getTimeline, getSummary, updateVendor, lookupVendorActions, getActiveChat } from '../lib/api';
+import { getTimeline, getSummary, updateVendor, lookupVendorActions, lookupVendorPayment, getActiveChat, getProgress } from '../lib/api';
 import EditPanel from '../components/EditPanel';
 import InstallBanner from '../components/InstallBanner';
+import ProgressHeader from '../components/ProgressHeader';
+import BadgeDrawer from '../components/BadgeDrawer';
+import NewBadgeToast from '../components/NewBadgeToast';
 
 const CATEGORY_OPTIONS = [
   { value: 'utilities', label: 'Utilities' },
@@ -21,13 +24,13 @@ const CATEGORY_OPTIONS = [
 ];
 
 function getDueInfo(nextDate) {
-  if (!nextDate) return { label: 'No date', className: 'later' };
+  if (!nextDate) return { label: 'No date', className: 'later', days: 999, isUrgent: false };
   const days = differenceInDays(new Date(nextDate), new Date());
-  if (days < 0) return { label: 'OVERDUE', className: 'overdue' };
-  if (days === 0) return { label: 'TODAY', className: 'today' };
-  if (days === 1) return { label: 'TOMORROW', className: 'tomorrow' };
-  if (days <= 3) return { label: `in ${days} days`, className: 'soon' };
-  return { label: `in ${days} days`, className: 'later' };
+  if (days < 0) return { label: 'OVERDUE', className: 'overdue', days, isUrgent: true };
+  if (days === 0) return { label: 'DUE TODAY', className: 'today', days, isUrgent: true };
+  if (days === 1) return { label: 'DUE TOMORROW', className: 'tomorrow', days, isUrgent: true };
+  if (days <= 3) return { label: `in ${days} days`, className: 'soon', days, isUrgent: true };
+  return { label: `in ${days} days`, className: 'later', days, isUrgent: false };
 }
 
 function getCardClass(nextDate) {
@@ -44,66 +47,91 @@ function getConfidenceClass(confidence) {
   return 'confidence-low';
 }
 
-function DifficultyBadge({ difficulty }) {
+function DifficultyBadge({ difficulty, type }) {
   if (!difficulty) return null;
-  return <span className={`difficulty-badge difficulty-${difficulty}`}>{difficulty}</span>;
+  const cls = type === 'pay' ? `difficulty-badge difficulty-${difficulty}` : `difficulty-badge difficulty-${difficulty}`;
+  return <span className={cls}>{difficulty}</span>;
 }
 
-function ActionButtons({ vendor, onLookup, lookingUp }) {
-  const hasManageUrl = vendor.manageUrl || vendor.loginUrl;
-  const hasCancelUrl = vendor.cancelUrl;
-  const hasCancelMethod = vendor.cancelMethod;
-  const hasAnyInfo = hasManageUrl || hasCancelUrl || hasCancelMethod;
-  const [showCancel, setShowCancel] = useState(false);
-
-  if (!hasAnyInfo) {
+// Pay button that appears for urgent bills
+function PayButton({ vendor, onLookupPay, lookingUp }) {
+  if (vendor.payUrl) {
     return (
-      <div className="bill-actions">
-        <button
-          className="action-btn action-btn-lookup"
-          onClick={(e) => { e.stopPropagation(); onLookup(); }}
-          disabled={lookingUp}
-        >
-          {lookingUp ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Search size={10} />}
-          {lookingUp ? 'Looking up...' : 'Find cancel info'}
-        </button>
-      </div>
+      <a href={vendor.payUrl} target="_blank" rel="noopener noreferrer"
+        className="action-btn action-btn-pay-primary" onClick={e => e.stopPropagation()}>
+        <CreditCard size={10} /> Pay Now
+      </a>
     );
   }
+  if (vendor.accountUrl) {
+    return (
+      <a href={vendor.accountUrl} target="_blank" rel="noopener noreferrer"
+        className="action-btn action-btn-pay" onClick={e => e.stopPropagation()}>
+        <ExternalLink size={10} /> Go to Account
+      </a>
+    );
+  }
+  if (vendor.manageUrl || vendor.loginUrl) {
+    return (
+      <a href={vendor.manageUrl || vendor.loginUrl} target="_blank" rel="noopener noreferrer"
+        className="action-btn action-btn-pay" onClick={e => e.stopPropagation()}>
+        <ExternalLink size={10} /> Pay / Manage
+      </a>
+    );
+  }
+  return (
+    <button className="action-btn action-btn-lookup" disabled={lookingUp}
+      onClick={e => { e.stopPropagation(); onLookupPay(); }}>
+      {lookingUp ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Search size={10} />}
+      {lookingUp ? 'Looking up...' : 'Find payment page'}
+    </button>
+  );
+}
+
+// Action buttons row — shows pay + cancel actions
+function ActionButtons({ vendor, due, onLookupCancel, lookingUpCancel, onLookupPay, lookingUpPay }) {
+  const [showCancel, setShowCancel] = useState(false);
+  const hasCancelMethod = vendor.cancelMethod;
 
   return (
     <div className="bill-actions" onClick={e => e.stopPropagation()}>
-      {hasManageUrl && (
-        <a
-          href={vendor.manageUrl || vendor.loginUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="action-btn"
-        >
-          <ExternalLink size={10} /> Pay / Manage
+      {/* Pay button — always shown for urgent, shown as subtle for others */}
+      {due.isUrgent ? (
+        <PayButton vendor={vendor} onLookupPay={onLookupPay} lookingUp={lookingUpPay} />
+      ) : (vendor.payUrl || vendor.accountUrl || vendor.manageUrl || vendor.loginUrl) ? (
+        <a href={vendor.payUrl || vendor.accountUrl || vendor.manageUrl || vendor.loginUrl}
+          target="_blank" rel="noopener noreferrer" className="action-btn action-btn-pay">
+          <CreditCard size={10} /> Pay
         </a>
-      )}
-      {hasCancelUrl && (
-        <a
-          href={vendor.cancelUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="action-btn action-btn-cancel"
-        >
+      ) : null}
+
+      {/* Cancel button */}
+      {vendor.cancelUrl && (
+        <a href={vendor.cancelUrl} target="_blank" rel="noopener noreferrer"
+          className="action-btn action-btn-cancel">
           <X size={10} /> Cancel
         </a>
       )}
+
+      {/* How to cancel expand */}
       {hasCancelMethod && (
         <>
-          <button
-            className="cancel-expand-btn"
-            onClick={() => setShowCancel(!showCancel)}
-          >
+          <button className="cancel-expand-btn" onClick={() => setShowCancel(!showCancel)}>
             How to cancel {showCancel ? <ChevronUp size={10} style={{ verticalAlign: 'middle' }} /> : <ChevronDown size={10} style={{ verticalAlign: 'middle' }} />}
           </button>
           <DifficultyBadge difficulty={vendor.cancelDifficulty} />
         </>
       )}
+
+      {/* No info at all — show lookup */}
+      {!vendor.payUrl && !vendor.accountUrl && !vendor.manageUrl && !vendor.loginUrl && !vendor.cancelUrl && !hasCancelMethod && !due.isUrgent && (
+        <button className="action-btn action-btn-lookup" disabled={lookingUpCancel}
+          onClick={() => onLookupCancel()}>
+          {lookingUpCancel ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Search size={10} />}
+          {lookingUpCancel ? 'Looking up...' : 'Find info'}
+        </button>
+      )}
+
       {showCancel && hasCancelMethod && (
         <div className="cancel-inline" style={{ width: '100%' }}>
           <div className="cancel-method">{vendor.cancelMethod}</div>
@@ -114,20 +142,87 @@ function ActionButtons({ vendor, onLookup, lookingUp }) {
   );
 }
 
+// Urgent pay bar — shows below header for overdue/due-soon bills
+function UrgentPayBar({ vendor, due, onLookupPay, lookingUpPay }) {
+  if (!due.isUrgent) return null;
+
+  return (
+    <div className="bill-pay-bar" onClick={e => e.stopPropagation()}>
+      {vendor.payMethod ? (
+        <span className="pay-method">{vendor.payMethod}</span>
+      ) : (
+        <span className="pay-method" style={{ color: 'var(--text-muted)' }}>
+          {due.days < 0 ? 'Tap Pay Now to handle this' : 'Pay before it\'s due'}
+        </span>
+      )}
+      {vendor.supportPhone && (
+        <a href={`tel:${vendor.supportPhone}`} className="phone-link" onClick={e => e.stopPropagation()}>
+          <Phone size={10} /> {vendor.supportPhone}
+        </a>
+      )}
+    </div>
+  );
+}
+
+// Payment info section in expanded panel
+function PaySection({ vendor, onRefresh, refreshing }) {
+  return (
+    <div className="pay-section">
+      <div className="pay-section-title">How to pay</div>
+
+      {vendor.payMethod ? (
+        <>
+          <div className="pay-method">{vendor.payMethod}</div>
+          <DifficultyBadge difficulty={vendor.payDifficulty} type="pay" />
+          {vendor.payTip && <div className="pay-tip" style={{ marginTop: 8 }}>{vendor.payTip}</div>}
+        </>
+      ) : (
+        <div className="muted" style={{ marginBottom: 8 }}>No payment info yet.</div>
+      )}
+
+      <div className="pay-links">
+        {vendor.payUrl && (
+          <a href={vendor.payUrl} target="_blank" rel="noopener noreferrer" className="action-btn action-btn-pay-primary">
+            <CreditCard size={10} /> Pay Now
+          </a>
+        )}
+        {vendor.accountUrl && (
+          <a href={vendor.accountUrl} target="_blank" rel="noopener noreferrer" className="action-btn action-btn-pay">
+            <ExternalLink size={10} /> Account
+          </a>
+        )}
+        {vendor.supportUrl && (
+          <a href={vendor.supportUrl} target="_blank" rel="noopener noreferrer" className="action-btn">
+            <ExternalLink size={10} /> Support
+          </a>
+        )}
+        {vendor.supportPhone && (
+          <a href={`tel:${vendor.supportPhone}`} className="phone-link">
+            <Phone size={10} /> {vendor.supportPhone}
+          </a>
+        )}
+      </div>
+
+      <button className="action-btn action-btn-lookup" onClick={onRefresh} disabled={refreshing} style={{ marginTop: 4 }}>
+        {refreshing ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <RefreshCw size={10} />}
+        Refresh payment info
+      </button>
+    </div>
+  );
+}
+
 function CancelSection({ vendor, onRefresh, refreshing, onMarkCancelled }) {
   const [cancelled, setCancelled] = useState(false);
 
   return (
     <div className="cancel-section">
-      <div className="cancel-section-title">Cancel this subscription</div>
+      <div className="cancel-section-title">How to cancel</div>
 
       {vendor.cancelMethod ? (
         <>
           <div className="cancel-method">{vendor.cancelMethod}</div>
           <DifficultyBadge difficulty={vendor.cancelDifficulty} />
-          {vendor.cancelTip && (
-            <div className="cancel-tip" style={{ marginTop: 8 }}>{vendor.cancelTip}</div>
-          )}
+          {vendor.cancelTip && <div className="cancel-tip" style={{ marginTop: 8 }}>{vendor.cancelTip}</div>}
         </>
       ) : (
         <div className="muted" style={{ marginBottom: 8 }}>No cancel info yet.</div>
@@ -151,21 +246,14 @@ function CancelSection({ vendor, onRefresh, refreshing, onMarkCancelled }) {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <button
-          className="action-btn action-btn-lookup"
-          onClick={onRefresh}
-          disabled={refreshing}
-        >
+      <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+        <button className="action-btn action-btn-lookup" onClick={onRefresh} disabled={refreshing}>
           {refreshing ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <RefreshCw size={10} />}
           Refresh cancel info
         </button>
         {!cancelled ? (
-          <button
-            className="btn btn-danger"
-            style={{ fontSize: 11, padding: '4px 10px' }}
-            onClick={() => { onMarkCancelled(); setCancelled(true); }}
-          >
+          <button className="btn btn-danger" style={{ fontSize: 11, padding: '4px 10px' }}
+            onClick={() => { onMarkCancelled(); setCancelled(true); }}>
             Mark as Cancelled
           </button>
         ) : (
@@ -183,15 +271,21 @@ export default function Timeline({ refreshKey }) {
   const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lookingUp, setLookingUp] = useState({});
+  const [lookingUpPay, setLookingUpPay] = useState({});
   const [refreshingCancel, setRefreshingCancel] = useState({});
+  const [refreshingPay, setRefreshingPay] = useState({});
   const [hasActiveChat, setHasActiveChat] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [showBadges, setShowBadges] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [v, s, activeChat] = await Promise.all([getTimeline(), getSummary(), getActiveChat()]);
+      const [v, s, activeChat, prog] = await Promise.all([getTimeline(), getSummary(), getActiveChat(), getProgress()]);
       setVendors(v);
       setSummary(s);
       setHasActiveChat(!!activeChat);
+      setProgress(prog);
     } catch (err) {
       console.error('Failed to load timeline:', err);
     } finally {
@@ -211,34 +305,21 @@ export default function Timeline({ refreshKey }) {
     }
   };
 
-  const handleLookup = async (vendorId) => {
-    setLookingUp(prev => ({ ...prev, [vendorId]: true }));
+  const doLookup = async (vendorId, lookupFn, setLoading) => {
+    setLoading(prev => ({ ...prev, [vendorId]: true }));
     try {
-      const updated = await lookupVendorActions(vendorId);
+      const updated = await lookupFn(vendorId);
       setVendors(prev => prev.map(v => v._id === vendorId ? updated : v));
     } catch (err) {
       console.error('Lookup failed:', err);
     } finally {
-      setLookingUp(prev => ({ ...prev, [vendorId]: false }));
-    }
-  };
-
-  const handleRefreshCancel = async (vendorId) => {
-    setRefreshingCancel(prev => ({ ...prev, [vendorId]: true }));
-    try {
-      const updated = await lookupVendorActions(vendorId);
-      setVendors(prev => prev.map(v => v._id === vendorId ? updated : v));
-    } catch (err) {
-      console.error('Refresh cancel failed:', err);
-    } finally {
-      setRefreshingCancel(prev => ({ ...prev, [vendorId]: false }));
+      setLoading(prev => ({ ...prev, [vendorId]: false }));
     }
   };
 
   const handleMarkCancelled = async (vendorId) => {
     try {
       await updateVendor(vendorId, { isActive: false });
-      // Remove from list after brief delay so user sees the confirmation
       setTimeout(() => {
         setVendors(prev => prev.filter(v => v._id !== vendorId));
         setExpandedId(null);
@@ -260,6 +341,19 @@ export default function Timeline({ refreshKey }) {
       </div>
 
       <InstallBanner />
+
+      <ProgressHeader progress={progress} onOpenBadges={() => setShowBadges(true)} />
+
+      {toast && (
+        <NewBadgeToast
+          badge={toast.badge}
+          levelUp={toast.levelUp}
+          onDismiss={() => setToast(null)}
+          onTap={() => { setToast(null); setShowBadges(true); }}
+        />
+      )}
+
+      {showBadges && <BadgeDrawer progress={progress} onClose={() => setShowBadges(false)} />}
 
       {summary && (
         <div className="summary-card">
@@ -327,16 +421,37 @@ export default function Timeline({ refreshKey }) {
                     <div className="bill-meta">
                       <span className="badge">{v.category}</span>
                       <span className={`bill-due ${due.className}`}>{due.label}</span>
+                      {due.isUrgent && (
+                        <PayButton
+                          vendor={v}
+                          onLookupPay={() => doLookup(v._id, lookupVendorPayment, setLookingUpPay)}
+                          lookingUp={!!lookingUpPay[v._id]}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="bill-amount">${amount.toFixed(2)}</div>
                 </div>
 
-                <ActionButtons
-                  vendor={v}
-                  onLookup={() => handleLookup(v._id)}
-                  lookingUp={!!lookingUp[v._id]}
-                />
+                {due.isUrgent && (
+                  <UrgentPayBar
+                    vendor={v}
+                    due={due}
+                    onLookupPay={() => doLookup(v._id, lookupVendorPayment, setLookingUpPay)}
+                    lookingUpPay={!!lookingUpPay[v._id]}
+                  />
+                )}
+
+                {!due.isUrgent && (
+                  <ActionButtons
+                    vendor={v}
+                    due={due}
+                    onLookupCancel={() => doLookup(v._id, lookupVendorActions, setLookingUp)}
+                    lookingUpCancel={!!lookingUp[v._id]}
+                    onLookupPay={() => doLookup(v._id, lookupVendorPayment, setLookingUpPay)}
+                    lookingUpPay={!!lookingUpPay[v._id]}
+                  />
+                )}
 
                 {isExpanded && (
                   <>
@@ -366,9 +481,15 @@ export default function Timeline({ refreshKey }) {
                       onCancel={() => setExpandedId(null)}
                     />
 
+                    <PaySection
+                      vendor={v}
+                      onRefresh={() => doLookup(v._id, lookupVendorPayment, setRefreshingPay)}
+                      refreshing={!!refreshingPay[v._id]}
+                    />
+
                     <CancelSection
                       vendor={v}
-                      onRefresh={() => handleRefreshCancel(v._id)}
+                      onRefresh={() => doLookup(v._id, lookupVendorActions, setRefreshingCancel)}
                       refreshing={!!refreshingCancel[v._id]}
                       onMarkCancelled={() => handleMarkCancelled(v._id)}
                     />

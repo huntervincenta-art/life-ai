@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import ChatSession from '../models/ChatSession.js';
 import BillTransaction from '../models/BillTransaction.js';
 import Vendor from '../models/Vendor.js';
+import { recordCheckIn } from '../services/progressService.js';
 import { recognizePattern } from '../services/patternRecognizer.js';
 
 const router = Router();
@@ -238,6 +239,7 @@ router.post('/end', async (req, res) => {
     session.status = 'completed';
     session.completedAt = new Date();
     await session.save();
+    recordCheckIn(req.user._id, 'chat_completed').catch(() => {});
 
     res.json({
       billsExtracted: session.billsExtracted,

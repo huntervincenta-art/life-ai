@@ -11,6 +11,8 @@ import billRoutes from './routes/bills.js';
 import settingsRoutes from './routes/settings.js';
 import chatRoutes from './routes/chat.js';
 import pushRoutes from './routes/push.js';
+import progressRoutes from './routes/progress.js';
+import { recordCheckIn } from './services/progressService.js';
 import { startEmailScanJob } from './jobs/emailScanJob.js';
 import { startBillAlertJob } from './jobs/billAlertJob.js';
 
@@ -49,6 +51,8 @@ app.use('/api', async (req, res, next) => {
       }
     }
     req.user = user;
+    // Record daily app_open check-in (fire-and-forget, don't block request)
+    recordCheckIn(user._id, 'app_open').catch(() => {});
     next();
   } catch (err) {
     console.error('[Auth] User middleware error:', err.message);
@@ -61,6 +65,7 @@ app.use('/api/bills', billRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/progress', progressRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -24,6 +24,13 @@ const vendorSchema = new mongoose.Schema({
   cancelMethod: { type: String, default: '' },
   cancelDifficulty: { type: String, enum: ['easy', 'medium', 'hard', ''], default: '' },
   cancelTip: { type: String, default: '' },
+  payUrl: { type: String, default: '' },
+  payMethod: { type: String, default: '' },
+  payDifficulty: { type: String, enum: ['easy', 'medium', 'hard', ''], default: '' },
+  payTip: { type: String, default: '' },
+  supportPhone: { type: String, default: '' },
+  supportUrl: { type: String, default: '' },
+  accountUrl: { type: String, default: '' },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });

@@ -1,6 +1,6 @@
 import BillTransaction from '../models/BillTransaction.js';
 import Vendor from '../models/Vendor.js';
-import { lookupCancelInfo } from './cancelHelper.js';
+import { lookupCancelInfo, getPaymentInfo } from './vendorHelper.js';
 
 function normalizeVendorName(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -113,6 +113,37 @@ export async function recognizePattern(vendorName, userId, category) {
       }
     } catch (err) {
       console.error('[PatternRecognizer] Cancel lookup error:', err.message);
+    }
+  }
+
+  // Look up payment info once per vendor (only if not already populated)
+  // Re-read vendor since cancel lookup may have updated it
+  const vendorNow = await Vendor.findById(vendor._id);
+  if (vendorNow && !vendorNow.payMethod) {
+    try {
+      const knownUrls = {
+        websiteUrl: vendorNow.websiteUrl || '',
+        manageUrl: vendorNow.manageUrl || '',
+        payUrl: vendorNow.payUrl || '',
+        accountUrl: vendorNow.accountUrl || '',
+        loginUrl: vendorNow.loginUrl || '',
+      };
+      const payInfo = await getPaymentInfo(vendorNow.name, knownUrls);
+      if (payInfo) {
+        const update = {};
+        if (payInfo.payMethod) update.payMethod = payInfo.payMethod;
+        if (payInfo.payDifficulty) update.payDifficulty = payInfo.payDifficulty;
+        if (payInfo.payTip) update.payTip = payInfo.payTip;
+        if (payInfo.payUrl && !vendorNow.payUrl) update.payUrl = payInfo.payUrl;
+        if (payInfo.accountUrl && !vendorNow.accountUrl) update.accountUrl = payInfo.accountUrl;
+        if (payInfo.supportPhone && !vendorNow.supportPhone) update.supportPhone = payInfo.supportPhone;
+        if (payInfo.supportUrl && !vendorNow.supportUrl) update.supportUrl = payInfo.supportUrl;
+        if (Object.keys(update).length > 0) {
+          await Vendor.findByIdAndUpdate(vendorNow._id, update);
+        }
+      }
+    } catch (err) {
+      console.error('[PatternRecognizer] Pay lookup error:', err.message);
     }
   }
 }

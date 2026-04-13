@@ -3,7 +3,8 @@ import BillTransaction from '../models/BillTransaction.js';
 import Vendor from '../models/Vendor.js';
 import { recognizePattern } from '../services/patternRecognizer.js';
 import { runScanForUser } from '../jobs/emailScanJob.js';
-import { lookupCancelInfo } from '../services/cancelHelper.js';
+import { lookupCancelInfo, getPaymentInfo } from '../services/vendorHelper.js';
+import { recordCheckIn } from '../services/progressService.js';
 
 const router = Router();
 
@@ -95,6 +96,7 @@ router.post('/', async (req, res) => {
     });
 
     await recognizePattern(bill.vendor, req.user._id, bill.category);
+    recordCheckIn(req.user._id, 'bill_added').catch(() => {});
 
     // If user provided explicit recurring info, override vendor predictions
     if (isRecurring && (billingCycleDays || nextExpectedDate)) {
@@ -166,6 +168,11 @@ router.patch('/vendor/:id', async (req, res) => {
     );
     if (!vendor) return res.status(404).json({ error: 'Not found' });
 
+    // Track vendor cancellation
+    if (req.body.isActive === false) {
+      recordCheckIn(req.user._id, 'vendor_cancelled').catch(() => {});
+    }
+
     res.json(vendor);
   } catch (err) {
     console.error('[Bills] vendor update error:', err.message);
@@ -205,10 +212,45 @@ router.post('/vendor/:id/lookup-actions', async (req, res) => {
   }
 });
 
+// POST /api/bills/vendor/:id/lookup-payment — force refresh payment info
+router.post('/vendor/:id/lookup-payment', async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!vendor) return res.status(404).json({ error: 'Not found' });
+
+    const knownUrls = {
+      websiteUrl: vendor.websiteUrl || '',
+      manageUrl: vendor.manageUrl || '',
+      payUrl: vendor.payUrl || '',
+      accountUrl: vendor.accountUrl || '',
+      loginUrl: vendor.loginUrl || '',
+    };
+
+    const payInfo = await getPaymentInfo(vendor.name, knownUrls);
+    if (!payInfo) return res.status(500).json({ error: 'Failed to look up payment info' });
+
+    const update = {};
+    if (payInfo.payMethod) update.payMethod = payInfo.payMethod;
+    if (payInfo.payDifficulty) update.payDifficulty = payInfo.payDifficulty;
+    if (payInfo.payTip) update.payTip = payInfo.payTip;
+    if (payInfo.payUrl) update.payUrl = payInfo.payUrl;
+    if (payInfo.accountUrl) update.accountUrl = payInfo.accountUrl;
+    if (payInfo.supportPhone) update.supportPhone = payInfo.supportPhone;
+    if (payInfo.supportUrl) update.supportUrl = payInfo.supportUrl;
+
+    const updated = await Vendor.findByIdAndUpdate(vendor._id, update, { new: true });
+    res.json(updated);
+  } catch (err) {
+    console.error('[Bills] lookup-payment error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/bills/scan — manual trigger
 router.post('/scan', async (req, res) => {
   try {
     const result = await runScanForUser(req.user);
+    recordCheckIn(req.user._id, 'scan_triggered').catch(() => {});
     res.json(result);
   } catch (err) {
     console.error('[Bills] scan error:', err.message);

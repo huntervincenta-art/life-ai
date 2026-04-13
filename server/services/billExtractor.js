@@ -16,7 +16,10 @@ Return a JSON object with these fields:
   "websiteUrl": "main website URL if found in email" or null,
   "manageUrl": "direct link to manage account/subscription if found in email footer" or null,
   "cancelUrl": "direct link to cancel if found" or null,
-  "loginUrl": "link to login/sign in if found" or null
+  "loginUrl": "link to login/sign in if found" or null,
+  "payUrl": "direct link to make a payment if found in email" or null,
+  "accountUrl": "link to view account or dashboard if found" or null,
+  "supportPhone": "customer service phone number if found" or null
 }
 
 Rules:
@@ -31,7 +34,10 @@ Rules:
 - For manageUrl, prioritize links labeled "manage", "account settings", "subscription", "billing"
 - For cancelUrl, look for links labeled "cancel", "unsubscribe from service", "end subscription"
 - For loginUrl, look for "sign in", "log in", "view account"
-- The websiteUrl is just the base domain of the sender`;
+- The websiteUrl is just the base domain of the sender
+- Look for links labeled "pay now", "make a payment", "pay bill", "view balance", "pay your bill"
+- Look for links labeled "my account", "your account", "dashboard", "account overview"
+- Look for phone numbers near "customer service", "support", "call us", "help"`;
 
 export async function extractBill(email) {
   try {
@@ -65,6 +71,9 @@ export async function extractBill(email) {
       manageUrl: parsed.manageUrl || '',
       cancelUrl: parsed.cancelUrl || '',
       loginUrl: parsed.loginUrl || '',
+      payUrl: parsed.payUrl || '',
+      accountUrl: parsed.accountUrl || '',
+      supportPhone: parsed.supportPhone || '',
     };
   } catch (err) {
     console.error('[BillExtractor] Error:', err.message);

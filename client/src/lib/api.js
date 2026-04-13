@@ -14,6 +14,7 @@ export const deleteTransaction = (id) => api.delete(`/api/bills/transaction/${id
 export const updateVendor = (id, data) => api.patch(`/api/bills/vendor/${id}`, data).then(r => r.data);
 export const getVendors = () => api.get('/api/bills/vendors').then(r => r.data);
 export const lookupVendorActions = (id) => api.post(`/api/bills/vendor/${id}/lookup-actions`).then(r => r.data);
+export const lookupVendorPayment = (id) => api.post(`/api/bills/vendor/${id}/lookup-payment`).then(r => r.data);
 
 // Scan
 export const triggerScan = () => api.post('/api/bills/scan').then(r => r.data);
@@ -29,6 +30,11 @@ export const getVapidKey = () => api.get('/api/push/vapid-key').then(r => r.data
 export const subscribePush = (data) => api.post('/api/push/subscribe', data).then(r => r.data);
 export const unsubscribePush = (data) => api.delete('/api/push/unsubscribe', { data }).then(r => r.data);
 export const testPush = () => api.post('/api/push/test').then(r => r.data);
+
+// Progress
+export const getProgress = () => api.get('/api/progress').then(r => r.data);
+export const recordCheckInApi = (type) => api.post('/api/progress/checkin', { type }).then(r => r.data);
+export const getTaxSaved = () => api.get('/api/progress/tax-saved').then(r => r.data);
 
 // Settings
 export const getSettings = () => api.get('/api/settings').then(r => r.data);

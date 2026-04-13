@@ -41,6 +41,9 @@ async function runScanForUser(user) {
       if (extracted.manageUrl) urlFields.manageUrl = extracted.manageUrl;
       if (extracted.cancelUrl) urlFields.cancelUrl = extracted.cancelUrl;
       if (extracted.loginUrl) urlFields.loginUrl = extracted.loginUrl;
+      if (extracted.payUrl) urlFields.payUrl = extracted.payUrl;
+      if (extracted.accountUrl) urlFields.accountUrl = extracted.accountUrl;
+      if (extracted.supportPhone) urlFields.supportPhone = extracted.supportPhone;
 
       // Check if this vendor was previously cancelled — alert if so
       const normalizedName = bill.vendor.toLowerCase().replace(/[^a-z0-9]/g, '');

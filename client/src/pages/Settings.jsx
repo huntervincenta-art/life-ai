@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, MessageCircle, Bell, Check, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
-import { getSettings, updateSettings, saveGmailCredentials, triggerScan, getVendors, updateVendor, getActiveChat, testPush } from '../lib/api';
+import { getSettings, updateSettings, saveGmailCredentials, triggerScan, getVendors, updateVendor, getActiveChat, testPush, getProgress } from '../lib/api';
 import { checkPushPermission, requestPushPermission, registerServiceWorker, subscribeToPush } from '../services/pushManager';
 
 export default function SettingsPage() {
@@ -15,8 +15,9 @@ export default function SettingsPage() {
   const [savingGmail, setSavingGmail] = useState(false);
   const [gmailMsg, setGmailMsg] = useState('');
   const [loading, setLoading] = useState(true);
-  const [expandedCancel, setExpandedCancel] = useState(null);
+  const [expandedVendor, setExpandedVendor] = useState(null); // { id, type: 'pay' | 'cancel' }
   const [hasActiveChat, setHasActiveChat] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [pushStatus, setPushStatus] = useState('loading');
   const [testResult, setTestResult] = useState(null);
   const [enablingPush, setEnablingPush] = useState(false);
@@ -25,11 +26,12 @@ export default function SettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [s, v, activeChat] = await Promise.all([getSettings(), getVendors(), getActiveChat()]);
+        const [s, v, activeChat, prog] = await Promise.all([getSettings(), getVendors(), getActiveChat(), getProgress()]);
         setSettings(s);
         setVendors(v);
         setGmailForm({ gmailUser: s.gmailUser || '', gmailAppPassword: '' });
         setHasActiveChat(!!activeChat);
+        setProgress(prog);
 
         const perm = await checkPushPermission();
         setPushStatus(perm);
@@ -147,6 +149,45 @@ export default function SettingsPage() {
           </span>
         </div>
       </div>
+
+      {/* Your Progress */}
+      {progress && (
+        <div className="settings-section">
+          <div className="settings-section-title">Your Progress</div>
+          <div className="settings-row">
+            <span className="settings-label">Level</span>
+            <span className="settings-value" style={{ color: 'var(--accent-secondary)' }}>Level {progress.level}</span>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">Bills tracked</span>
+            <span className="settings-value">{progress.totalBillsTracked}</span>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">Subscriptions cancelled</span>
+            <span className="settings-value">{progress.cancelledSubscriptions}</span>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">Estimated savings</span>
+            <span className="settings-value" style={{ color: 'var(--accent-success)' }}>${progress.estimatedTaxSaved.toLocaleString()}</span>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">30-day consistency</span>
+            <span className="settings-value">{progress.consistencyRate}%</span>
+          </div>
+          {progress.badges.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div className="form-label" style={{ marginBottom: 6 }}>Badges earned</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {progress.badges.map(b => (
+                  <span key={b.id} className="badge" style={{ background: 'var(--accent-secondary-light)', color: 'var(--accent-secondary)' }}>
+                    {b.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Setup */}
       <div className="settings-section">
@@ -327,42 +368,70 @@ export default function SettingsPage() {
         <div className="settings-section">
           <div className="settings-section-title">Detected Vendors ({vendors.length})</div>
 
-          {vendors.map(v => (
-            <div key={v._id} className={`vendor-item ${!v.isActive ? 'vendor-cancelled' : ''}`}>
-              <div className="vendor-info">
-                <div className="vendor-name">
-                  {v.name}
-                  {!v.isActive && <span className="badge-cancelled">Cancelled</span>}
-                </div>
-                <div className="vendor-detail">
-                  {v.category} &middot; {v.billingCycleDays}d cycle &middot; ${v.lastAmount?.toFixed(2) || '—'}
-                  {v.cancelDifficulty && (
-                    <span className={`difficulty-badge difficulty-${v.cancelDifficulty}`} style={{ marginLeft: 6 }}>
-                      {v.cancelDifficulty}
-                    </span>
-                  )}
-                </div>
-                {v.cancelMethod && (
+          {vendors.map(v => {
+            const isPayExpanded = expandedVendor?.id === v._id && expandedVendor?.type === 'pay';
+            const isCancelExpanded = expandedVendor?.id === v._id && expandedVendor?.type === 'cancel';
+            return (
+              <div key={v._id} className={`vendor-item ${!v.isActive ? 'vendor-cancelled' : ''}`} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="vendor-info">
+                    <div className="vendor-name">
+                      {v.name}
+                      {!v.isActive && <span className="badge-cancelled">Cancelled</span>}
+                    </div>
+                    <div className="vendor-detail">
+                      {v.category} &middot; {v.billingCycleDays}d cycle &middot; ${v.lastAmount?.toFixed(2) || '—'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      {(v.payMethod || v.payUrl) && (
+                        <button
+                          className="vendor-cancel-link"
+                          style={{ color: '#5ecfba' }}
+                          onClick={e => { e.stopPropagation(); setExpandedVendor(isPayExpanded ? null : { id: v._id, type: 'pay' }); }}
+                        >
+                          {isPayExpanded ? 'hide pay info' : 'pay'}
+                        </button>
+                      )}
+                      {(v.cancelMethod || v.cancelUrl) && (
+                        <button
+                          className="vendor-cancel-link"
+                          onClick={e => { e.stopPropagation(); setExpandedVendor(isCancelExpanded ? null : { id: v._id, type: 'cancel' }); }}
+                        >
+                          {isCancelExpanded ? 'hide cancel info' : 'cancel'}
+                        </button>
+                      )}
+                      {v.cancelDifficulty && (
+                        <span className={`difficulty-badge difficulty-${v.cancelDifficulty}`}>{v.cancelDifficulty}</span>
+                      )}
+                    </div>
+                  </div>
                   <button
-                    className="vendor-cancel-link"
-                    onClick={(e) => { e.stopPropagation(); setExpandedCancel(expandedCancel === v._id ? null : v._id); }}
-                  >
-                    {expandedCancel === v._id ? 'hide cancel info' : 'cancel info'}
-                  </button>
+                    className={`toggle ${v.isActive ? 'active' : ''}`}
+                    onClick={() => handleToggleVendor(v)}
+                    style={{ flexShrink: 0 }}
+                  />
+                </div>
+                {isPayExpanded && (
+                  <div className="cancel-inline" style={{ marginTop: 6, borderLeftColor: '#5ecfba' }}>
+                    {v.payMethod && <div className="pay-method">{v.payMethod}</div>}
+                    {v.payTip && <div className="pay-tip">{v.payTip}</div>}
+                    {v.payUrl && (
+                      <a href={v.payUrl} target="_blank" rel="noopener noreferrer"
+                        className="action-btn action-btn-pay" style={{ marginTop: 4 }}>
+                        Pay Now
+                      </a>
+                    )}
+                  </div>
                 )}
-                {expandedCancel === v._id && v.cancelMethod && (
-                  <div className="cancel-inline" style={{ marginTop: 4 }}>
-                    <div className="cancel-method">{v.cancelMethod}</div>
+                {isCancelExpanded && (
+                  <div className="cancel-inline" style={{ marginTop: 6 }}>
+                    {v.cancelMethod && <div className="cancel-method">{v.cancelMethod}</div>}
                     {v.cancelTip && <div className="cancel-tip">{v.cancelTip}</div>}
                   </div>
                 )}
               </div>
-              <button
-                className={`toggle ${v.isActive ? 'active' : ''}`}
-                onClick={() => handleToggleVendor(v)}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
