@@ -51,35 +51,87 @@ export async function recognizePattern(vendorName, userId, category) {
 
     if (intervals.length > 0) {
       const avgCycle = Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length);
-      vendorData.billingCycleDays = avgCycle;
 
-      // Check for consistent day-of-month
-      const daysOfMonth = transactions.map(t => new Date(t.datePaid).getDate());
-      const uniqueDays = [...new Set(daysOfMonth)];
-      if (uniqueDays.length === 1) {
-        vendorData.billingDayOfMonth = uniqueDays[0];
-      } else {
-        // Check if most are the same (allow 1 outlier)
-        const dayFreq = {};
-        daysOfMonth.forEach(d => { dayFreq[d] = (dayFreq[d] || 0) + 1; });
-        const mostCommon = Object.entries(dayFreq).sort((a, b) => b[1] - a[1])[0];
-        if (mostCommon[1] >= daysOfMonth.length * 0.7) {
-          vendorData.billingDayOfMonth = parseInt(mostCommon[0]);
-        }
+      // Calculate variance — how inconsistent are the intervals?
+      const maxInterval = Math.max(...intervals);
+      const minInterval = Math.min(...intervals);
+      const variance = avgCycle > 0 ? (maxInterval - minInterval) / avgCycle : 1;
+      const isHighVariance = variance > 0.5;
+      const isShortCycle = avgCycle < 14;
+
+      // Classify billing pattern
+      let billingPattern = 'unknown';
+      if (isHighVariance || isShortCycle) {
+        billingPattern = 'irregular';
+      } else if (avgCycle >= 6 && avgCycle <= 8 && !isHighVariance) {
+        billingPattern = 'weekly';
+      } else if (avgCycle >= 25 && avgCycle <= 35 && !isHighVariance) {
+        billingPattern = 'monthly';
+      } else if (avgCycle >= 85 && avgCycle <= 100 && !isHighVariance) {
+        billingPattern = 'quarterly';
+      } else if (avgCycle >= 350 && avgCycle <= 380 && !isHighVariance) {
+        billingPattern = 'annual';
+      } else if (!isHighVariance && avgCycle >= 14) {
+        billingPattern = 'monthly'; // default for reasonable consistent cycles
       }
 
-      // Predict next date
-      vendorData.nextExpectedDate = new Date(latest.datePaid.getTime() + avgCycle * 24 * 60 * 60 * 1000);
+      vendorData.billingPattern = billingPattern;
 
-      // Confidence based on transaction count
-      const count = transactions.length;
-      vendorData.confidence = count === 2 ? 0.4 : count === 3 ? 0.6 : count === 4 ? 0.75 : 0.9;
+      if (isShortCycle) {
+        // Too short — likely on-demand purchases, not a recurring bill
+        vendorData.billingCycleDays = null;
+        vendorData.confidence = 0.1;
+        vendorData.nextExpectedDate = null;
+      } else if (isHighVariance) {
+        // Inconsistent intervals — don't predict
+        vendorData.billingCycleDays = avgCycle;
+        vendorData.confidence = Math.min(0.3, transactions.length * 0.1);
+        vendorData.nextExpectedDate = null;
+      } else if (transactions.length === 2) {
+        // Only 2 transactions — only predict if likely monthly and was marked recurring
+        vendorData.billingCycleDays = avgCycle;
+        if (latest.isRecurring && avgCycle >= 25 && avgCycle <= 35) {
+          vendorData.nextExpectedDate = new Date(latest.datePaid.getTime() + avgCycle * 24 * 60 * 60 * 1000);
+          vendorData.confidence = 0.4;
+        } else {
+          vendorData.confidence = 0.2;
+          vendorData.nextExpectedDate = null;
+          if (billingPattern === 'monthly') vendorData.billingPattern = 'unknown';
+        }
+      } else {
+        // 3+ transactions with consistent intervals — confident prediction
+        vendorData.billingCycleDays = avgCycle;
+        vendorData.nextExpectedDate = new Date(latest.datePaid.getTime() + avgCycle * 24 * 60 * 60 * 1000);
+
+        const count = transactions.length;
+        vendorData.confidence = count === 3 ? 0.6 : count === 4 ? 0.75 : 0.9;
+      }
+
+      // Check for consistent day-of-month (only for confident predictions)
+      if (vendorData.confidence >= 0.4 && !isHighVariance) {
+        const daysOfMonth = transactions.map(t => new Date(t.datePaid).getDate());
+        const uniqueDays = [...new Set(daysOfMonth)];
+        if (uniqueDays.length === 1) {
+          vendorData.billingDayOfMonth = uniqueDays[0];
+        } else {
+          const dayFreq = {};
+          daysOfMonth.forEach(d => { dayFreq[d] = (dayFreq[d] || 0) + 1; });
+          const mostCommon = Object.entries(dayFreq).sort((a, b) => b[1] - a[1])[0];
+          if (mostCommon[1] >= daysOfMonth.length * 0.7) {
+            vendorData.billingDayOfMonth = parseInt(mostCommon[0]);
+          }
+        }
+      }
     }
   } else if (transactions.length === 1 && latest.isRecurring) {
-    // Single recurring transaction — assume monthly
+    // Single recurring transaction — assume monthly but low confidence
     vendorData.billingCycleDays = 30;
     vendorData.nextExpectedDate = new Date(latest.datePaid.getTime() + 30 * 24 * 60 * 60 * 1000);
     vendorData.confidence = 0.2;
+    vendorData.billingPattern = 'unknown';
+  } else if (transactions.length === 1) {
+    vendorData.billingPattern = 'unknown';
+    vendorData.confidence = 0.1;
   }
 
   const vendor = await Vendor.findOneAndUpdate(

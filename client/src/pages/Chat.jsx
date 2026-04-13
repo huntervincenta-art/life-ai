@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Send, Bot, Check, ArrowRight } from 'lucide-react';
-import { startChat, sendChatMessage, endChat } from '../lib/api';
+import { X, Send, Check, ArrowRight, MessageCircle } from 'lucide-react';
+import { startChat, sendChatMessage, endChat, getActiveChat } from '../lib/api';
+
+const PilotFace = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+    <circle cx="6.5" cy="7.5" r="1.2" fill="#111816" />
+    <circle cx="11.5" cy="7.5" r="1.2" fill="#111816" />
+    <path d="M6 11.5Q9 13.5 12 11.5" stroke="#111816" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+  </svg>
+);
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -12,7 +20,7 @@ function formatTime(seconds) {
 function TypingIndicator() {
   return (
     <div className="chat-bubble chat-ai">
-      <div className="chat-avatar"><Bot size={14} /></div>
+      <div className="chat-avatar"><PilotFace size={14} /></div>
       <div className="chat-bubble-content">
         <div className="typing-dots">
           <span /><span /><span />
@@ -54,34 +62,49 @@ export default function ChatPage() {
   const [ended, setEnded] = useState(false);
   const [timerExpired, setTimerExpired] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [showLanding, setShowLanding] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Start or resume session
+  // Check for active session — show landing if none
   useEffect(() => {
     (async () => {
       try {
-        const data = await startChat();
-        setSessionId(data.sessionId);
-        setMessages(data.messages.map(m => ({ role: m.role, content: m.content })));
-        setBillsTotal(data.billsExtracted || 0);
-
-        // If resumed, adjust timer based on startedAt
-        if (data.resumed && data.messages.length > 0) {
-          const firstMsg = data.messages[0];
-          const elapsed = Math.floor((Date.now() - new Date(firstMsg.timestamp).getTime()) / 1000);
-          const remaining = Math.max(0, 20 * 60 - elapsed);
-          setTimer(remaining);
-          if (remaining === 0) setTimerExpired(true);
+        const active = await getActiveChat();
+        if (active) {
+          // Resume active session
+          setSessionId(active.sessionId);
+          setMessages(active.messages.map(m => ({ role: m.role, content: m.content })));
+          setBillsTotal(active.billsExtracted || 0);
+          setInitializing(false);
+          return;
         }
+        // No active session — show landing
+        setShowLanding(true);
+        setInitializing(false);
       } catch (err) {
-        console.error('Failed to start chat:', err);
-      } finally {
+        console.error('Failed to check chat:', err);
+        setShowLanding(true);
         setInitializing(false);
       }
     })();
   }, []);
+
+  const handleStartNew = async () => {
+    setShowLanding(false);
+    setInitializing(true);
+    try {
+      const data = await startChat();
+      setSessionId(data.sessionId);
+      setMessages(data.messages.map(m => ({ role: m.role, content: m.content })));
+      setBillsTotal(data.billsExtracted || 0);
+    } catch (err) {
+      console.error('Failed to start chat:', err);
+    } finally {
+      setInitializing(false);
+    }
+  };
 
   // Timer countdown
   useEffect(() => {
@@ -155,10 +178,28 @@ export default function ChatPage() {
 
   if (initializing) {
     return (
-      <div className="chat-page">
-        <div className="chat-loading">
-          <span className="spinner" />
-          <p className="muted" style={{ marginTop: 12 }}>Starting your chat...</p>
+      <div className="page" style={{ paddingTop: 60, textAlign: 'center' }}>
+        <span className="spinner" />
+        <p className="muted" style={{ marginTop: 12 }}>Loading...</p>
+      </div>
+    );
+  }
+
+  // Landing screen — no active session
+  if (showLanding) {
+    return (
+      <div className="page" style={{ paddingTop: 40 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div className="pilot-avatar" style={{ width: 64, height: 64, margin: '0 auto 16px' }}>
+            <PilotFace size={32} />
+          </div>
+          <h2 style={{ marginBottom: 8 }}>Hey! I'm Pilot</h2>
+          <p className="muted" style={{ marginBottom: 24, fontSize: 14 }}>
+            Your bill co-pilot. Want to map out your bills together? It takes about 20 minutes.
+          </p>
+          <button className="btn btn-primary btn-lg" onClick={handleStartNew} style={{ gap: 6 }}>
+            <MessageCircle size={18} /> Start Chat
+          </button>
         </div>
       </div>
     );
@@ -200,7 +241,7 @@ export default function ChatPage() {
     <div className="chat-page">
       {/* Top bar */}
       <div className="chat-topbar">
-        <div className="chat-topbar-title">Get To Know You</div>
+        <div className="chat-topbar-title">Pilot</div>
         <div className={`chat-timer ${timerClass}`}>{formatTime(timer)}</div>
         <button className="chat-close" onClick={handleEnd}><X size={18} /></button>
       </div>
@@ -218,7 +259,7 @@ export default function ChatPage() {
           <div key={i}>
             {m.role === 'assistant' ? (
               <div className="chat-bubble chat-ai">
-                <div className="chat-avatar"><Bot size={14} /></div>
+                <div className="chat-avatar"><PilotFace size={14} /></div>
                 <div className="chat-bubble-content">{m.content}</div>
               </div>
             ) : (

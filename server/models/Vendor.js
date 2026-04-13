@@ -31,6 +31,7 @@ const vendorSchema = new mongoose.Schema({
   supportPhone: { type: String, default: '' },
   supportUrl: { type: String, default: '' },
   accountUrl: { type: String, default: '' },
+  billingPattern: { type: String, enum: ['monthly', 'quarterly', 'annual', 'weekly', 'irregular', 'one_time', 'unknown'], default: 'unknown' },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });

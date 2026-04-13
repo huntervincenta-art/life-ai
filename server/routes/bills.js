@@ -155,7 +155,7 @@ router.delete('/transaction/:id', async (req, res) => {
 // PATCH /api/bills/vendor/:id
 router.patch('/vendor/:id', async (req, res) => {
   try {
-    const allowed = ['nextExpectedDate', 'billingCycleDays', 'billingDayOfMonth', 'category', 'isActive'];
+    const allowed = ['nextExpectedDate', 'billingCycleDays', 'billingDayOfMonth', 'category', 'isActive', 'billingPattern', 'confidence'];
     const update = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) update[key] = req.body[key];

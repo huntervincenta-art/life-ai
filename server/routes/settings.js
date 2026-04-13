@@ -37,7 +37,8 @@ router.get('/', async (req, res) => {
       pushEnabled: req.user.pushEnabled,
       gmailConnected: req.user.gmailConnected || !!(req.user.gmailUser || process.env.GMAIL_USER),
       gmailUser: req.user.gmailUser || process.env.GMAIL_USER || '',
-      lastScanAt: req.user.lastScanAt
+      lastScanAt: req.user.lastScanAt,
+      lastOpenedAt: req.user.lastOpenedAt
     });
   } catch (err) {
     console.error('[Settings] get error:', err.message);

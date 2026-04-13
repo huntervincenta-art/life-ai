@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { RefreshCw, MessageCircle, Bell, Check, Smartphone } from 'lucide-react';
+import { RefreshCw, Bell, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
-import { getSettings, updateSettings, saveGmailCredentials, triggerScan, getVendors, updateVendor, getActiveChat, testPush, getProgress } from '../lib/api';
+import { getSettings, updateSettings, saveGmailCredentials, triggerScan, getVendors, updateVendor, testPush, getProgress } from '../lib/api';
 import { checkPushPermission, requestPushPermission, registerServiceWorker, subscribeToPush } from '../services/pushManager';
 
+function isStandalonePWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
 export default function SettingsPage() {
-  const navigate = useNavigate();
   const [settings, setSettings] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [gmailForm, setGmailForm] = useState({ gmailUser: '', gmailAppPassword: '' });
@@ -16,30 +22,34 @@ export default function SettingsPage() {
   const [gmailMsg, setGmailMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [expandedVendor, setExpandedVendor] = useState(null); // { id, type: 'pay' | 'cancel' }
-  const [hasActiveChat, setHasActiveChat] = useState(false);
   const [progress, setProgress] = useState(null);
   const [pushStatus, setPushStatus] = useState('loading');
   const [testResult, setTestResult] = useState(null);
   const [enablingPush, setEnablingPush] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showIOSTip, setShowIOSTip] = useState(false);
+
+  // Capture beforeinstallprompt
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const [s, v, activeChat, prog] = await Promise.all([getSettings(), getVendors(), getActiveChat(), getProgress()]);
+        const [s, v, prog] = await Promise.all([getSettings(), getVendors(), getProgress()]);
         setSettings(s);
         setVendors(v);
         setGmailForm({ gmailUser: s.gmailUser || '', gmailAppPassword: '' });
-        setHasActiveChat(!!activeChat);
         setProgress(prog);
 
         const perm = await checkPushPermission();
         setPushStatus(perm);
 
-        setIsInstalled(
-          window.matchMedia('(display-mode: standalone)').matches
-          || window.navigator.standalone === true
-        );
+        setIsInstalled(isStandalonePWA());
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {
@@ -140,14 +150,27 @@ export default function SettingsPage() {
         <div className="settings-section-title">App</div>
         <div className="settings-row">
           <span className="settings-label">Installation</span>
-          <span className="settings-value">
-            {isInstalled ? (
-              <><span className="status-dot connected" /> Life AI is installed</>
-            ) : (
-              <span style={{ color: 'var(--text-muted)' }}>Not installed</span>
-            )}
-          </span>
+          {isInstalled ? (
+            <span className="settings-value"><span className="status-dot connected" /> Installed</span>
+          ) : (
+            <button className="btn btn-primary btn-sm" style={{ gap: 4 }} onClick={async () => {
+              if (isIOSDevice()) { setShowIOSTip(true); return; }
+              if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                setDeferredPrompt(null);
+                if (outcome === 'accepted') setIsInstalled(true);
+              }
+            }}>
+              <Smartphone size={12} /> Install
+            </button>
+          )}
         </div>
+        {showIOSTip && (
+          <div className="muted" style={{ padding: '6px 0' }}>
+            Tap the share button, then "Add to Home Screen"
+          </div>
+        )}
       </div>
 
       {/* Your Progress */}
@@ -188,21 +211,6 @@ export default function SettingsPage() {
           )}
         </div>
       )}
-
-      {/* Setup */}
-      <div className="settings-section">
-        <div className="settings-section-title">Setup</div>
-        <div className="settings-row">
-          <span className="settings-label">Map out your bills with AI chat</span>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => navigate('/chat')}
-            style={{ gap: 4 }}
-          >
-            <MessageCircle size={12} /> {hasActiveChat ? 'Continue Chat' : 'Start Chat'}
-          </button>
-        </div>
-      </div>
 
       {/* Notifications */}
       <div className="settings-section">
@@ -386,7 +394,7 @@ export default function SettingsPage() {
                       {(v.payMethod || v.payUrl) && (
                         <button
                           className="vendor-cancel-link"
-                          style={{ color: '#5ecfba' }}
+                          style={{ color: '#5ba88a' }}
                           onClick={e => { e.stopPropagation(); setExpandedVendor(isPayExpanded ? null : { id: v._id, type: 'pay' }); }}
                         >
                           {isPayExpanded ? 'hide pay info' : 'pay'}
@@ -412,7 +420,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 {isPayExpanded && (
-                  <div className="cancel-inline" style={{ marginTop: 6, borderLeftColor: '#5ecfba' }}>
+                  <div className="cancel-inline" style={{ marginTop: 6, borderLeftColor: '#5ba88a' }}>
                     {v.payMethod && <div className="pay-method">{v.payMethod}</div>}
                     {v.payTip && <div className="pay-tip">{v.payTip}</div>}
                     {v.payUrl && (

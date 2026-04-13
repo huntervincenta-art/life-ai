@@ -51,7 +51,11 @@ app.use('/api', async (req, res, next) => {
       }
     }
     req.user = user;
-    // Record daily app_open check-in (fire-and-forget, don't block request)
+    // Track lastOpenedAt and record daily check-in (fire-and-forget)
+    const prevOpened = user.lastOpenedAt;
+    user.lastOpenedAt = new Date();
+    user.save().catch(() => {});
+    req.prevOpenedAt = prevOpened;
     recordCheckIn(user._id, 'app_open').catch(() => {});
     next();
   } catch (err) {

@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   lastScanAt: { type: Date, default: null },
   scanEnabled: { type: Boolean, default: true },
   alertDaysBefore: { type: Number, default: 3 },
+  lastOpenedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 

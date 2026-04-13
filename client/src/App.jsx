@@ -9,13 +9,11 @@ import Settings from './pages/Settings';
 import Chat from './pages/Chat';
 import { registerServiceWorker, subscribeToPush, checkPushPermission } from './services/pushManager';
 
-// Register SW and auto-subscribe on app load
 function usePWASetup() {
   useEffect(() => {
     (async () => {
       const registration = await registerServiceWorker();
       if (!registration) return;
-
       const permission = await checkPushPermission();
       if (permission === 'granted') {
         await subscribeToPush(registration);
@@ -28,7 +26,7 @@ function AppShell() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const location = useLocation();
-  const isChat = location.pathname === '/chat';
+  const isActiveChat = location.pathname === '/chat' && location.search.includes('active=1');
 
   usePWASetup();
 
@@ -38,23 +36,16 @@ function AppShell() {
 
   return (
     <div className="app">
-      {!isChat && (
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Timeline refreshKey={refreshKey} />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </main>
-      )}
-
-      {isChat && (
+      <main className="main-content">
         <Routes>
+          <Route path="/" element={<Timeline refreshKey={refreshKey} />} />
+          <Route path="/history" element={<History />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
-      )}
+      </main>
 
-      {!isChat && (
+      {!isActiveChat && (
         <>
           <button className="fab" onClick={() => setShowAddModal(true)} aria-label="Add bill">
             <Plus size={24} />

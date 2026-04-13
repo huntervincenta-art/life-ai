@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, List, Settings } from 'lucide-react';
+import { CalendarDays, List, Settings, MessageCircle } from 'lucide-react';
 
 export default function BottomNav() {
   return (
@@ -11,6 +11,10 @@ export default function BottomNav() {
       <NavLink to="/history" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
         <List size={20} />
         <span className="nav-label">History</span>
+      </NavLink>
+      <NavLink to="/chat" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
+        <MessageCircle size={20} />
+        <span className="nav-label">Pilot</span>
       </NavLink>
       <NavLink to="/settings" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
         <Settings size={20} />
