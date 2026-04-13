@@ -14,7 +14,8 @@
       "Bash(node --check models/index.js)",
       "Bash(node --check routes/lifeLog.js)",
       "Bash(node --check routes/routines.js)",
-      "Bash(node --check services/kidsConfig.js)"
+      "Bash(node --check services/kidsConfig.js)",
+      "Bash(rm:*)"
     ]
   }
 }
