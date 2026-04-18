@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settings.js';
 import chatRoutes from './routes/chat.js';
 import pushRoutes from './routes/push.js';
 import progressRoutes from './routes/progress.js';
+import plaidRoutes from './plaid/routes.js';
 import { recordCheckIn } from './services/progressService.js';
 import { startEmailScanJob } from './jobs/emailScanJob.js';
 import { startBillAlertJob } from './jobs/billAlertJob.js';
@@ -70,6 +71,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/plaid', plaidRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

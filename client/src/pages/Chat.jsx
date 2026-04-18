@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Send, Check, ArrowRight, MessageCircle } from 'lucide-react';
 import { startChat, sendChatMessage, endChat, getActiveChat } from '../lib/api';
 
-const PilotFace = ({ size = 14 }) => (
+const ScorpioFace = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 18 18" fill="none">
     <circle cx="6.5" cy="7.5" r="1.2" fill="#111816" />
     <circle cx="11.5" cy="7.5" r="1.2" fill="#111816" />
@@ -20,7 +20,7 @@ function formatTime(seconds) {
 function TypingIndicator() {
   return (
     <div className="chat-bubble chat-ai">
-      <div className="chat-avatar"><PilotFace size={14} /></div>
+      <div className="chat-avatar"><ScorpioFace size={14} /></div>
       <div className="chat-bubble-content">
         <div className="typing-dots">
           <span /><span /><span />
@@ -190,12 +190,12 @@ export default function ChatPage() {
     return (
       <div className="page" style={{ paddingTop: 40 }}>
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <div className="pilot-avatar" style={{ width: 64, height: 64, margin: '0 auto 16px' }}>
-            <PilotFace size={32} />
+          <div className="scorpio-avatar" style={{ width: 64, height: 64, margin: '0 auto 16px' }}>
+            <ScorpioFace size={32} />
           </div>
-          <h2 style={{ marginBottom: 8 }}>Hey! I'm Pilot</h2>
+          <h2 style={{ marginBottom: 8 }}>I'm Scorpio</h2>
           <p className="muted" style={{ marginBottom: 24, fontSize: 14 }}>
-            Your bill co-pilot. Want to map out your bills together? It takes about 20 minutes.
+            Let's map out your bills. It takes about 20 minutes — I'll keep it focused.
           </p>
           <button className="btn btn-primary btn-lg" onClick={handleStartNew} style={{ gap: 6 }}>
             <MessageCircle size={18} /> Start Chat
@@ -241,7 +241,7 @@ export default function ChatPage() {
     <div className="chat-page">
       {/* Top bar */}
       <div className="chat-topbar">
-        <div className="chat-topbar-title">Pilot</div>
+        <div className="chat-topbar-title">Scorpio</div>
         <div className={`chat-timer ${timerClass}`}>{formatTime(timer)}</div>
         <button className="chat-close" onClick={handleEnd}><X size={18} /></button>
       </div>
@@ -259,7 +259,7 @@ export default function ChatPage() {
           <div key={i}>
             {m.role === 'assistant' ? (
               <div className="chat-bubble chat-ai">
-                <div className="chat-avatar"><PilotFace size={14} /></div>
+                <div className="chat-avatar"><ScorpioFace size={14} /></div>
                 <div className="chat-bubble-content">{m.content}</div>
               </div>
             ) : (

@@ -40,3 +40,9 @@ export const getTaxSaved = () => api.get('/api/progress/tax-saved').then(r => r.
 export const getSettings = () => api.get('/api/settings').then(r => r.data);
 export const updateSettings = (data) => api.patch('/api/settings', data).then(r => r.data);
 export const saveGmailCredentials = (data) => api.post('/api/settings/gmail', data).then(r => r.data);
+
+// Plaid
+export const createLinkToken = () => api.post('/api/plaid/create-link-token').then(r => r.data);
+export const exchangePublicToken = (public_token, institution) => api.post('/api/plaid/exchange-public-token', { public_token, institution }).then(r => r.data);
+export const getPlaidTransactions = () => api.get('/api/plaid/transactions').then(r => r.data);
+export const getPlaidAccounts = () => api.get('/api/plaid/accounts').then(r => r.data);

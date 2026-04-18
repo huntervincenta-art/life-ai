@@ -17,7 +17,8 @@
       "Bash(node --check services/kidsConfig.js)",
       "Bash(rm:*)",
       "Bash(node -e ':*)",
-      "Bash(node -e \"try { require\\('sharp'\\); console.log\\('sharp'\\); } catch { console.log\\('no sharp'\\); }\")"
+      "Bash(node -e \"try { require\\('sharp'\\); console.log\\('sharp'\\); } catch { console.log\\('no sharp'\\); }\")",
+      "Bash(find C:\\\\Users\\\\claud\\\\Documents\\\\PERSONAL_SERVER\\\\life-ai:*)"
     ]
   }
 }

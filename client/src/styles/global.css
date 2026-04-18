@@ -1605,8 +1605,8 @@ button { cursor: pointer; font-family: inherit; }
   gap: 8px;
 }
 
-/* ─── Pilot Greeting ─────────────────────────────────── */
-.pilot-greeting {
+/* ─── Scorpio Greeting ───────────────────────────────── */
+.scorpio-greeting {
   display: flex;
   gap: 10px;
   align-items: center;
@@ -1614,7 +1614,7 @@ button { cursor: pointer; font-family: inherit; }
   margin-bottom: 8px;
 }
 
-.pilot-avatar {
+.scorpio-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -1625,7 +1625,7 @@ button { cursor: pointer; font-family: inherit; }
   justify-content: center;
 }
 
-.pilot-message {
+.scorpio-message {
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 400;

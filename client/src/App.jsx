@@ -7,6 +7,8 @@ import Timeline from './pages/Timeline';
 import History from './pages/History';
 import Settings from './pages/Settings';
 import Chat from './pages/Chat';
+import ConnectBank from './pages/ConnectBank';
+import Transactions from './pages/Transactions';
 import { registerServiceWorker, subscribeToPush, checkPushPermission } from './services/pushManager';
 
 function usePWASetup() {
@@ -42,6 +44,8 @@ function AppShell() {
           <Route path="/history" element={<History />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/connect-bank" element={<ConnectBank />} />
+          <Route path="/transactions" element={<Transactions />} />
         </Routes>
       </main>
 

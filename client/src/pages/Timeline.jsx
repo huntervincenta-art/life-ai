@@ -5,7 +5,7 @@ import { differenceInDays, format } from 'date-fns';
 import { getTimeline, getSummary, updateVendor, lookupVendorActions, lookupVendorPayment, getActiveChat, getProgress, getSettings } from '../lib/api';
 import EditPanel from '../components/EditPanel';
 import InstallBanner from '../components/InstallBanner';
-import PilotGreeting from '../components/PilotGreeting';
+import ScorpioGreeting from '../components/ScorpioGreeting';
 import ProgressHeader from '../components/ProgressHeader';
 import BadgeDrawer from '../components/BadgeDrawer';
 import NewBadgeToast from '../components/NewBadgeToast';
@@ -402,7 +402,7 @@ export default function Timeline({ refreshKey }) {
         <h1 className="page-title">Bills</h1>
       </div>
 
-      <PilotGreeting lastOpenedAt={lastOpenedAt} />
+      <ScorpioGreeting lastOpenedAt={lastOpenedAt} />
 
       <InstallBanner />
 
@@ -448,7 +448,7 @@ export default function Timeline({ refreshKey }) {
           <h3>{hasActiveChat ? 'Continue mapping your bills' : vendors.length === 0 ? 'Map out your bills in 20 minutes' : 'Want to add more bills? Chat again'}</h3>
           <p>{vendors.length === 0 ? "Have a quick chat and we'll build your bill timeline together" : 'Pick up where you left off or start a new round'}</p>
           <button className="btn btn-primary" onClick={() => navigate('/chat')} style={{ gap: 6 }}>
-            <MessageCircle size={16} /> {hasActiveChat ? 'Continue Chat' : 'Chat with Pilot'}
+            <MessageCircle size={16} /> {hasActiveChat ? 'Continue Chat' : 'Chat with Scorpio'}
           </button>
         </div>
       )}

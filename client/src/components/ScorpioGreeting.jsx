@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const PILOT_FACE = (
+const SCORPIO_FACE = (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <circle cx="6.5" cy="7.5" r="1.2" fill="#111816" />
     <circle cx="11.5" cy="7.5" r="1.2" fill="#111816" />
@@ -44,7 +44,7 @@ function getTimeOfDay() {
   return 'evening';
 }
 
-export default function PilotGreeting({ lastOpenedAt }) {
+export default function ScorpioGreeting({ lastOpenedAt }) {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -64,9 +64,9 @@ export default function PilotGreeting({ lastOpenedAt }) {
   if (!message) return null;
 
   return (
-    <div className="pilot-greeting">
-      <div className="pilot-avatar">{PILOT_FACE}</div>
-      <span className="pilot-message">{message}</span>
+    <div className="scorpio-greeting">
+      <div className="scorpio-avatar">{SCORPIO_FACE}</div>
+      <span className="scorpio-message">{message}</span>
     </div>
   );
 }
